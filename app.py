@@ -25,7 +25,7 @@ MLFLOW_URI = os.environ.get(
     "MLFLOW_TRACKING_URI",
     "https://dagshub.com/danpoku/canmlpipeline.mlflow"
 )
-
+st.write(secrets)
 # --- Setup Functions ---
 def setup_tracking():
     mlflow.set_tracking_uri(MLFLOW_URI)
