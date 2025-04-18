@@ -99,7 +99,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel):
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, 'date', climate_df['date'].values)
-    st.subheader("AQ Predictions")
+    # st.subheader("AQ Predictions")
     st.dataframe(paginate_df(df_out, "aq_rows", "aq_pages"))
     return df_out
 
@@ -121,7 +121,7 @@ def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_
     df_out = pd.DataFrame(preds, columns=RESP_DISEASE_COLS)
     df_out = df_out.round().astype(int)
     df_out.insert(0, 'date', climate_df['date'].values)
-    st.subheader("RESP Predictions (Paginated)")
+    # st.subheader("RESP Predictions (Paginated)")
     st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
     return df_out
 
