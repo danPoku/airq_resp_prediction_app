@@ -54,13 +54,13 @@ def get_climate_data():
     st.sidebar.header("Climate Data Source")
     source = st.sidebar.radio(
         "Choose data input method:",
-        ["Upload CSV", "Fetch from API"],
+        ["Upload CSV", "Fetch data from API"],
         index=0,
         key="climate_data_source"
     )
     df = None
-    if source == "Fetch from API":
-        url = st.sidebar.text_input("Enter CSV GET URL:", key="api_url_input")
+    if source == "Fetch data from API":
+        url = st.sidebar.text_input("Enter GET URL:", key="api_url_input")
         if st.sidebar.button("Fetch Data", key="api_fetch_btn"):
             try:
                 df = pd.read_csv(url)
