@@ -164,6 +164,7 @@ def main():
     df_raw = get_climate_data()
     if df_raw is None:
         st.info("Please upload or fetch climate data to begin.")
+        st.info("Check the sidebar to upload or fetch climate data")
         return
     # Display and retrieve full df
     raw_page, df_full = show_climate_section(df_raw)
