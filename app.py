@@ -154,7 +154,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
 # --- Main ---
 
 def main():
-    st.title("Accra Air Quality and Respiratory Forecasting")
+    st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
     # Show models in sidebar
     st.sidebar.subheader("Models")
