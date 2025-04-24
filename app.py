@@ -72,23 +72,28 @@ def validate_schema(
 
 
 # Paginate
-def paginate_df(
-    df: pd.DataFrame, rows_key: str, page_key: str, section_name: str
-) -> pd.DataFrame:
+def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
     """
     Paginate a dataframe for display in Streamlit.
-    Wrap controls in a named sidebar expander so they don't all sit open at once.
+    Inputs now live in the main pane—so only visible in the active tab.
     """
-    with st.sidebar.expander(f"{section_name} pagination", expanded=False):
-        rows = st.number_input(
-            "Rows per page", min_value=5, max_value=50, value=10, key=rows_key
-        )
-        total = (len(df) + rows - 1) // rows
-        page = st.number_input(
-            "Page", min_value=1, max_value=total, value=1, key=page_key
-        )
+    rows = st.number_input(
+        "Rows per page", 
+        min_value=5, 
+        max_value=50, 
+        value=10, 
+        key=rows_key
+    )
+    total = (len(df) + rows - 1) // rows
+    page = st.number_input(
+        "Page", 
+        min_value=1, 
+        max_value=total, 
+        value=1, 
+        key=page_key
+    )
     start = (page - 1) * rows
-    end = start + rows
+    end   = start + rows
     return df.iloc[start:end]
 
 
@@ -141,7 +146,7 @@ def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     st.subheader("Climate Data")
     # df['date'] = pd.to_datetime(df['date'])
-    return paginate_df(df, "climate_rows", "climate_pages", "Climate"), df
+    return paginate_df(df, "climate_rows", "climate_pages"), df
 
 
 def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame:
@@ -167,7 +172,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, "date", climate_df["date"].values)
-    st.dataframe(paginate_df(df_out, "airq_rows", "airq_pages", "Air Quality"))
+    st.dataframe(paginate_df(df_out, "airq_rows", "airq_pages"))
     return df_out
 
 
@@ -203,7 +208,7 @@ def show_resp_section(
     df_out = pd.DataFrame(preds, columns=RESP_DISEASE_COLS)
     df_out = df_out.round().astype(int)
     df_out.insert(0, "date", climate_df["date"].values)
-    st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages", "Respiratory"))
+    st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
     return df_out
 
 
