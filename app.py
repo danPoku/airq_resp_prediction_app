@@ -284,7 +284,7 @@ def compute_delta(df: pd.DataFrame, value_col: str) -> str:
     """
     # Work on a copy
     df = df.copy()
-    df['date'] = pd.to_datetime(df['date']).dt.date
+    # df['date'] = pd.to_datetime(df['date']).dt.date
     today = datetime.today().date()
     yesterday = today - timedelta(days=1)
 
