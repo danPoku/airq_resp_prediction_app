@@ -5,6 +5,7 @@ import mlflow
 import mlflow.pyfunc
 from mlflow.pyfunc import PyFuncModel
 import altair as alt
+from typing import Tuple, List, Set
 
 from feature_engineering import climate_clean_transform
 
@@ -27,16 +28,37 @@ MLFLOW_URI = os.environ.get(
     "MLFLOW_TRACKING_URI"
 )
 
-# --- Setup Functions ---
+# Setup
 def setup_tracking():
+    """Set up MLflow tracking URI.
+    """
     mlflow.set_tracking_uri(MLFLOW_URI)
 
 @st.cache_resource
 def load_model(model_uri: str) -> PyFuncModel:
+    """Load a model from the specified URI.
+    This function uses the MLflow library to load a model from a given URI.
+
+    Args:
+        model_uri (str): URI of the model to load.
+
+    Returns:
+        PyFuncModel: Loaded model instance.
+    """
     return mlflow.pyfunc.load_model(model_uri)
 
 
-def validate_schema(df: pd.DataFrame, model: PyFuncModel):
+def validate_schema(df: pd.DataFrame, model: PyFuncModel) -> Tuple[List[str], Set[str], Set[str]]:
+    """Validate the input dataframe against the model's expected schema.
+    This function checks for missing and extra columns in the dataframe compared to the model's input signature.
+
+    Args:
+        df (pd.DataFrame): Input dataframe to validate.
+        model (PyFuncModel): The model to validate against.
+
+    Returns:
+        Tuple[List[str], Set[str], Set[str]]: A tuple containing the expected columns, missing columns, and extra columns.
+    """
     sig = model.metadata.signature
     expected = [inp.name for inp in sig.inputs]
     missing = set(expected) - set(df.columns)
@@ -45,14 +67,30 @@ def validate_schema(df: pd.DataFrame, model: PyFuncModel):
 
 
 def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
+    """Paginate a dataframe for display in Streamlit.
+    This function allows the user to select the number of rows per page and the page number.
+    Args:
+        df (pd.DataFrame): Dataframe to paginate
+        rows_key (str): Number of rows to display per page
+        page_key (str): Key for the page number input
+
+    Returns:
+        pd.DataFrame: Paginated dataframe
+    """
     rows = st.number_input("Rows per page", min_value=5, max_value=50, value=10, key=rows_key)
     total = (len(df) + rows - 1) // rows
     page = st.number_input("Page", min_value=1, max_value=total, value=1, key=page_key)
     start, end = (page - 1) * rows, (page - 1) * rows + rows
     return df.iloc[start:end]
 
-# --- Sidebar Input ---
-def get_climate_data():
+# Sidebar
+def get_climate_data() -> pd.DataFrame:
+    """Get climate data from user input.
+    This function allows the user to either upload a CSV file or fetch data from an API.
+
+    Returns:
+        pd.DataFrame: Dataframe containing the climate data.
+    """
     st.sidebar.header("Climate Data Source")
     source = st.sidebar.radio(
         "Choose data input method:",
@@ -81,14 +119,33 @@ def get_climate_data():
                 st.sidebar.error(f"Error reading file: {e}")
     return df
 
-# --- Display Sections ---
-def show_climate_section(df: pd.DataFrame):
+# Display
+def show_climate_section(df: pd.DataFrame) -> pd.DataFrame:
+    """Show climate data for analysis.
+
+    Args:
+        df (pd.DataFrame): Climate data for analysis.
+
+    Returns:
+        pd.DataFrame: Dataframe containing paginated climate data.
+    """
     st.subheader("Climate Data")
     # df['date'] = pd.to_datetime(df['date'])
     return paginate_df(df, "climate_rows", "climate_pages"), df
 
 
-def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel):
+def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame:
+    """Show air quality predictions based on climate data.
+    This function validates the input data against the model's expected schema and
+    generates predictions for air quality pollutants.
+
+    Args:
+        climate_df (pd.DataFrame): climate dataframe
+        aq_model (PyFuncModel): air quality prediction model
+
+    Returns:
+        pd.DataFrame: dataframe containing air quality predictions
+    """
     st.subheader("Air Quality Prediction")
     exp, miss, extra = validate_schema(climate_df, aq_model)
     if miss:
@@ -100,12 +157,21 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel):
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, 'date', climate_df['date'].values)
-    # st.subheader("AQ Predictions")
     st.dataframe(paginate_df(df_out, "aq_rows", "aq_pages"))
     return df_out
 
 
-def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_model: PyFuncModel):
+def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_model: PyFuncModel) -> pd.DataFrame:
+    """Show respiratory disease predictions based on climate data and air quality predictions.
+
+    Args:
+        climate_df (pd.DataFrame): climate dataframe
+        df_preds_aq (pd.DataFrame): dataframe containing air quality predictions
+        resp_model (PyFuncModel): respiratory disease prediction model
+
+    Returns:
+        pd.DataFrame: dataframe containing respiratory disease predictions
+    """
     st.subheader("Respiratory Disease Predictions")
     df_in = pd.concat([
         climate_df.reset_index(drop=True),
@@ -122,12 +188,18 @@ def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_
     df_out = pd.DataFrame(preds, columns=RESP_DISEASE_COLS)
     df_out = df_out.round().astype(int)
     df_out.insert(0, 'date', climate_df['date'].values)
-    # st.subheader("RESP Predictions (Paginated)")
     st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
     return df_out
 
 
 def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str):
+    """Plot time series data using Altair.
+    Args:
+        df (pd.DataFrame): _description_
+        id_var (str): _description_
+        value_vars (list): _description_
+        title (str): _description_
+    """
     st.subheader(title)
     df_melt = df.melt(
         id_vars=id_var,
@@ -142,16 +214,16 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
     scale = st.radio(
         "Y-axis scale", ["linear", "log"], index=0, key=f"{title}_scale"
     )
-    legend = alt.selection_multi(fields=['Category'], bind='legend')
+    legend = alt.selection_point(fields=['Category'], bind='legend')
     chart = alt.Chart(filtered).mark_line().encode(
         x=alt.X(f'{id_var}:T', axis=alt.Axis(format='%b %d', labelAngle=-45)),
         y=alt.Y('Value:Q', scale=alt.Scale(type=scale)),
         color=alt.Color('Category:N'),
         opacity=alt.condition(legend, alt.value(1), alt.value(0.2))
-    ).add_selection(legend).properties(width=800, height=400)
+    ).add_params(legend).properties(width=800, height=400)
     st.altair_chart(chart, use_container_width=True)
 
-# --- Main ---
+# Main
 
 def main():
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
@@ -160,13 +232,13 @@ def main():
     st.sidebar.subheader("Models")
     st.sidebar.write(f"**{AQ_MODEL_NAME}** v{AQ_MODEL_VERSION}")
     st.sidebar.write(f"**{RESP_MODEL_NAME}** v{RESP_MODEL_VERSION}")
-    # Get climate data
+    # Retrieve climate data
     df_raw = get_climate_data()
     if df_raw is None:
         st.info("Please upload or fetch climate data to begin.")
         st.info("Check the sidebar to upload or fetch climate data")
         return
-    # Display and retrieve full df
+    # Retrieve climate data
     raw_page, df_full = show_climate_section(df_raw)
 
     # Prepare data
@@ -180,9 +252,9 @@ def main():
     df_preds_aq = show_aq_section(climate_df, aq_model)
     plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, "Air Quality Forecast Time Series")
 
-    # Respiratory
+    # Respiratory Disease
     df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
-    plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, "Respiratory Forecast Time Series")
+    plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, "Respiratory Disease Forecast Time Series")
 
 if __name__ == '__main__':
     main()
