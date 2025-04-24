@@ -121,19 +121,18 @@ def get_climate_data() -> pd.DataFrame:
     return df
 
 # Display
-def show_climate_section(df: pd.DataFrame) -> pd.DataFrame:
-    """Show climate data for analysis.
+def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Show climate data section.
 
     Args:
-        df (pd.DataFrame): Climate data for analysis.
+        df (pd.DataFrame): Dataframe containing climate data.
 
     Returns:
-        pd.DataFrame: Paginated dataframe containing climate data.
+        Tuple[pd.DataFrame, pd.DataFrame]: Tuple containing the paginated dataframe and the full dataframe.
     """
     st.subheader("Climate Data")
-    df_paginated = paginate_df(df, "climate_rows", "climate_pages")
-    st.dataframe(df_paginated)
-    return df_paginated
+    # df['date'] = pd.to_datetime(df['date'])
+    return paginate_df(df, "climate_rows", "climate_pages"), df
 
 
 def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame:
