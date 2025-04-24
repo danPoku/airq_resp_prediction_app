@@ -81,9 +81,9 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Paginated dataframe
     """
-    rows = st.number_input("Rows per page", min_value=5, max_value=50, value=10, key=rows_key)
+    rows = st.sidebar.number_input("Rows per page", 5, 50, 10, key=rows_key)
     total = (len(df) + rows - 1) // rows
-    page = st.number_input("Page", min_value=1, max_value=total, value=1, key=page_key)
+    page = st.sidebar.number_input("Page", 1, total, 1, key=page_key)
     start, end = (page - 1) * rows, (page - 1) * rows + rows
     return df.iloc[start:end]
 
@@ -161,7 +161,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, 'date', climate_df['date'].values)
-    st.dataframe(paginate_df(df_out, "aq_rows", "aq_pages"))
+    # st.dataframe(paginate_df(df_out, "aq_rows", "aq_pages"))
     return df_out
 
 
@@ -192,7 +192,7 @@ def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_
     df_out = pd.DataFrame(preds, columns=RESP_DISEASE_COLS)
     df_out = df_out.round().astype(int)
     df_out.insert(0, 'date', climate_df['date'].values)
-    st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
+    # st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
     return df_out
 
 
@@ -373,7 +373,7 @@ def main():
         col6.metric("SO₂", f"{metrics['so2']:.1f}", deltas['so2'], delta_color="inverse")
         # plot
         plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, 
-                         "Air Quality Forecast Time Series")
+                         "Trend")
 
     # Resp tab
     with resp_tab:
