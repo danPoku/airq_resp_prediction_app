@@ -1,6 +1,7 @@
 import os
 from typing import Tuple, List, Set
 from datetime import datetime
+from datetime import timedelta
 import streamlit as st
 import pandas as pd
 import mlflow
@@ -284,8 +285,8 @@ def compute_delta(df: pd.DataFrame, value_col: str) -> str:
     # Work on a copy
     df = df.copy()
     df['date'] = pd.to_datetime(df['date']).dt.date
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
+    today = datetime.today().date()
+    yesterday = today - timedelta(days=1)
 
     # Get the two rows (if they exist)
     today_val = df.loc[df['date'] == today, value_col]
