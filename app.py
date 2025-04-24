@@ -359,17 +359,16 @@ def main():
         for col in POLLUTANT_COLS:
             logger.info(f"Delta for {col}: {deltas[col]}")
         
-        
+        # Compute tomorrow's timestamp
+        tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
+        # Display tomorrow's date
+        st.subheader(f"Forecast for {tomorrow_ts.strftime('%B %d, %Y')}")
         # Display metrics
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", deltas['pm2_5'])
         col2.metric("PM₁₀", f"{metrics['pm10']:.1f}", deltas['pm10'])
         col3.metric("O₃",  f"{metrics['o3']:.1f}", deltas['o3'])
         col4.metric("CO",   f"{metrics['co']:.1f}", deltas['co'])
-        # Compute tomorrow's timestamp
-        tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
-        # Display tomorrow's date
-        st.subheader(f"Forecast for {tomorrow_ts.strftime('%B %d, %Y')}")
         # plot
         plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, 
                          "Air Quality Forecast Time Series")
