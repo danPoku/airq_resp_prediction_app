@@ -348,7 +348,16 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
 def main():
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
-
+    
+    with st.sidebar.expander("ℹ️ About this App", expanded=False):
+        st.markdown("""
+            **PulmoPulse** uses climate inputs to predict air-quality pollutants  
+            and respiratory disease burden.
+            - **Data sources:** OpenWeather API, Ghana Health Service, Visualcrossing API  
+            - **Models:** AirQBoost, PulmoPulse  
+            - **Contact:** dan.gyinaye@gmail.com
+        """)
+    
     tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality Forecast", "🫁 Respiratory Forecast"])
     climate_tab, aq_tab, resp_tab = tabs
 
