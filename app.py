@@ -1,7 +1,8 @@
 import os
 from typing import Tuple, List, Set
-from datetime import datetime, date
+from datetime import date
 from datetime import timedelta
+import logging
 import streamlit as st
 import pandas as pd
 import mlflow
@@ -352,7 +353,13 @@ def main():
             .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method='ffill')
             .iloc[0]
         )
-        print(deltas)
+        # Import logger to log metrics
+        logger = logging.getLogger(__name__)
+        # Log deltas
+        for col in POLLUTANT_COLS:
+            logger.info(f"Delta for {col}: {deltas[col]}")
+        
+        
         # Display metrics
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", deltas['pm2_5'])
