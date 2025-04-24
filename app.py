@@ -84,7 +84,8 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
     rows = st.sidebar.number_input("Rows per page", 5, 50, 10, key=rows_key)
     total = (len(df) + rows - 1) // rows
     page = st.sidebar.number_input("Page", 1, total, 1, key=page_key)
-    start, end = (page - 1) * rows, (page - 1) * rows + rows
+    start = (page - 1) * rows
+    end = start + rows
     return df.iloc[start:end]
 
 # Sidebar
@@ -161,7 +162,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, 'date', climate_df['date'].values)
-    st.dataframe(df_out)
+    st.dataframe(paginate_df(df_out, "airq_rows", "airq_pages"))
     return df_out
 
 
@@ -192,7 +193,7 @@ def show_resp_section(climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_
     df_out = pd.DataFrame(preds, columns=RESP_DISEASE_COLS)
     df_out = df_out.round().astype(int)
     df_out.insert(0, 'date', climate_df['date'].values)
-    # st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
+    st.dataframe(paginate_df(df_out, "resp_rows", "resp_pages"))
     return df_out
 
 
