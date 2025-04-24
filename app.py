@@ -225,36 +225,69 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
 
 # Main
 
+# def main():
+#     st.title("Accra Air Quality and Respiratory Disease Forecasting")
+#     setup_tracking()
+#     # Show models in sidebar
+#     st.sidebar.subheader("Models")
+#     st.sidebar.write(f"**{AQ_MODEL_NAME}** v{AQ_MODEL_VERSION}")
+#     st.sidebar.write(f"**{RESP_MODEL_NAME}** v{RESP_MODEL_VERSION}")
+#     # Retrieve climate data
+#     df_raw = get_climate_data()
+#     if df_raw is None:
+#         st.info("Please upload or fetch climate data to begin.")
+#         st.info("Check the sidebar to upload or fetch climate data")
+#         return
+#     # Retrieve climate data
+#     raw_page, df_full = show_climate_section(df_raw)
+
+#     # Prepare data
+#     climate_df = climate_clean_transform(df_full.copy())
+
+#     # Load models
+#     aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
+#     resp_model = load_model("runs:/9b84e0378ccf42379b208c11b8116b6e/model_artifact")
+
+#     # Air Quality
+#     df_preds_aq = show_aq_section(climate_df, aq_model)
+#     plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, "Air Quality Forecast Time Series")
+
+#     # Respiratory Disease
+#     df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
+#     plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, "Respiratory Disease Forecast Time Series")
+
 def main():
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
-    # Show models in sidebar
-    st.sidebar.subheader("Models")
-    st.sidebar.write(f"**{AQ_MODEL_NAME}** v{AQ_MODEL_VERSION}")
-    st.sidebar.write(f"**{RESP_MODEL_NAME}** v{RESP_MODEL_VERSION}")
-    # Retrieve climate data
-    df_raw = get_climate_data()
-    if df_raw is None:
-        st.info("Please upload or fetch climate data to begin.")
-        st.info("Check the sidebar to upload or fetch climate data")
-        return
-    # Retrieve climate data
-    raw_page, df_full = show_climate_section(df_raw)
 
-    # Prepare data
+    tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality", "🫁 Respiratory Forecast"])
+    climate_tab, aq_tab, resp_tab = tabs
+
+    # climate tab
+    with climate_tab:
+        df_raw = get_climate_data()
+        if df_raw is None:
+            st.info("Please upload or fetch climate data to begin.")
+            return
+        raw_page, df_full = show_climate_section(df_raw)
+
+    # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
-
-    # Load models
     aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
     resp_model = load_model("runs:/9b84e0378ccf42379b208c11b8116b6e/model_artifact")
 
-    # Air Quality
-    df_preds_aq = show_aq_section(climate_df, aq_model)
-    plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, "Air Quality Forecast Time Series")
+    # AQ tab
+    with aq_tab:
+        df_preds_aq = show_aq_section(climate_df, aq_model)
+        plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, 
+                         "Air Quality Forecast Time Series")
 
-    # Respiratory Disease
-    df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
-    plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, "Respiratory Disease Forecast Time Series")
+    # Resp tab
+    with resp_tab:
+        df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
+        plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, 
+                         "Respiratory Disease Forecast Time Series")
+
 
 if __name__ == '__main__':
     main()
