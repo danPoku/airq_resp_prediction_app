@@ -352,6 +352,7 @@ def main():
             .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method='ffill')
             .iloc[0]
         )
+        print(deltas)
         # Display metrics
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", deltas['pm2_5'])
