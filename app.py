@@ -280,6 +280,14 @@ def main():
     # AQ tab
     with aq_tab:
         df_preds_aq = show_aq_section(climate_df, aq_model)
+        # scorecards
+        latest = df_preds_aq.iloc[-1]
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("PM₂.₅", f"{latest['pm2_5']:.1f}", delta="–2% vs yesterday")
+        col2.metric("PM₁₀", f"{latest['pm10']:.1f}")
+        col3.metric("O₃",  f"{latest['o3']:.1f}")
+        col4.metric("CO",   f"{latest['co']:.1f}")
+        # plot
         plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, 
                          "Air Quality Forecast Time Series")
 
