@@ -1,11 +1,12 @@
 import os
+from typing import Tuple, List, Set
 import streamlit as st
 import pandas as pd
 import mlflow
 import mlflow.pyfunc
 from mlflow.pyfunc import PyFuncModel
 import altair as alt
-from typing import Tuple, List, Set
+
 
 from feature_engineering import climate_clean_transform
 
@@ -127,11 +128,12 @@ def show_climate_section(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): Climate data for analysis.
 
     Returns:
-        pd.DataFrame: Dataframe containing paginated climate data.
+        pd.DataFrame: Paginated dataframe containing climate data.
     """
     st.subheader("Climate Data")
-    # df['date'] = pd.to_datetime(df['date'])
-    return paginate_df(df, "climate_rows", "climate_pages"), df
+    df_paginated = paginate_df(df, "climate_rows", "climate_pages")
+    st.dataframe(df_paginated)
+    return df_paginated
 
 
 def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame:
@@ -260,7 +262,7 @@ def main():
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
 
-    tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality", "🫁 Respiratory Forecast"])
+    tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality Forecast", "🫁 Respiratory Forecast"])
     climate_tab, aq_tab, resp_tab = tabs
 
     # climate tab
