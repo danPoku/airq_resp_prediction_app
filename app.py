@@ -1,6 +1,6 @@
 import os
 from typing import Tuple, List, Set
-from datetime import datetime
+from datetime import datetime, date
 from datetime import timedelta
 import streamlit as st
 import pandas as pd
@@ -277,30 +277,47 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series:
         return today_df.iloc[0]
     return df.iloc[-1]
 
-def compute_delta(df: pd.DataFrame, value_col: str) -> str:
+def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     """
-    Calculate percentage change between today and yesterday for the given column.
-    Returns a formatted string, e.g. "+3.5%".
+    For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
+    to 'today + 1 day' as present in df.  
+    If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
     """
-    # Work on a copy
-    df = df.copy()
-    # df['date'] = pd.to_datetime(df['date']).dt.date
-    today = datetime.today().date()
-    yesterday = today - timedelta(days=1)
+    # 1) Copy, normalize and sort by date
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date']).dt.normalize()
+    df2 = df2.sort_values('date').reset_index(drop=True)
 
-    # Get the two rows (if they exist)
-    today_val = df.loc[df['date'] == today, value_col]
-    yest_val  = df.loc[df['date'] == yesterday, value_col]
+    # 2) Define today and tomorrow
+    today_ts  = pd.Timestamp(date.today())
+    next_ts   = today_ts + pd.Timedelta(days=1)
 
-    if not today_val.empty and not yest_val.empty:
-        today_v = float(today_val.iloc[0])
-        yest_v  = float(yest_val.iloc[0])
-        # Avoid division by zero
-        if yest_v != 0:
-            pct_change = (today_v - yest_v) / yest_v * 100
-            sign = "+" if pct_change >= 0 else ""
-            return f"{sign}{pct_change:.1f}%"
-    return "N/A"
+    # 3) Check that tomorrow exists in your data
+    if next_ts not in set(df2['date']):
+        return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+
+    # 4) Locate positions
+    tomorrow_idx = df2.index[df2['date'] == next_ts][0]
+    prev_idx     = tomorrow_idx - 1
+    if prev_idx < 0:
+        return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+
+    # 5) Compute deltas
+    deltas = {}
+    for col in POLLUTANT_COLS:
+        prev = df2.at[prev_idx, col]
+        curr = df2.at[tomorrow_idx, col]
+        # Guard against zero‐division
+        if pd.notna(prev) and prev != 0:
+            pct = (curr - prev) / prev * 100
+            sign = "+" if pct >= 0 else ""
+            deltas[col] = f"{sign}{pct:.1f}%"
+        else:
+            deltas[col] = "N/A"
+
+    # 6) Return a Series so you can do things like deltas["pm2_5"]
+    return pd.Series(deltas)
+
 
 # MAIN Function
 def main():
@@ -326,20 +343,25 @@ def main():
     # AQ tab
     with aq_tab:
         df_preds_aq = show_aq_section(climate_df, aq_model)
+        deltas = compute_deltas_next_day(df_preds_aq)
         # scorecard metrics
-        metrics = get_today_metrics(df_preds_aq)
-        # Compute deltas
-        delta_pm25 = compute_delta(df_preds_aq, 'pm2_5')
-        delta_pm10 = compute_delta(df_preds_aq, 'pm10')
-        delta_o3 = compute_delta(df_preds_aq, 'o3')
-        delta_co = compute_delta(df_preds_aq, 'co')
+        metrics = (
+            df_preds_aq
+            .assign(date=pd.to_datetime(df_preds_aq['date']).dt.normalize())
+            .set_index('date')
+            .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method='ffill')
+            .iloc[0]
+        )
         # Display metrics
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", delta_pm25)
-        col1.markdown(f"({delta_pm25})")
-        col2.metric("PM₁₀", f"{metrics['pm10']:.1f}", delta_pm10)
-        col3.metric("O₃",  f"{metrics['o3']:.1f}", delta_o3)
-        col4.metric("CO",   f"{metrics['co']:.1f}", delta_co)
+        col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", deltas['pm2_5'])
+        col2.metric("PM₁₀", f"{metrics['pm10']:.1f}", deltas['pm10'])
+        col3.metric("O₃",  f"{metrics['o3']:.1f}", deltas['o3'])
+        col4.metric("CO",   f"{metrics['co']:.1f}", deltas['co'])
+        # Compute tomorrow's timestamp
+        tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
+        # Display tomorrow's date
+        st.subheader(f"Forecast for {tomorrow_ts.strftime('%B %d, %Y')}")
         # plot
         plot_time_series(df_preds_aq, 'date', POLLUTANT_COLS, 
                          "Air Quality Forecast Time Series")
