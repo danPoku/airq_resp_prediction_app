@@ -364,7 +364,7 @@ def main():
         # Display tomorrow's date
         st.subheader(f"Forecast for {tomorrow_ts.strftime('%B %d, %Y')}")
         # Display metrics
-        col1, col2, col3, col4 = st.columns(6)
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         col1.metric("PM₂.₅", f"{metrics['pm2_5']:.1f}", deltas['pm2_5'], delta_color="inverse")
         col2.metric("PM₁₀", f"{metrics['pm10']:.1f}", deltas['pm10'], delta_color="inverse")
         col3.metric("O₃",  f"{metrics['o3']:.1f}", deltas['o3'], delta_color="inverse")
