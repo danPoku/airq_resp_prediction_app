@@ -49,7 +49,6 @@ def load_model(model_uri: str) -> PyFuncModel:
         PyFuncModel: Loaded model instance.
     """
     with st.spinner("Loading model..."):
-        st.info(f"Loading model from {model_uri}")
         return mlflow.pyfunc.load_model(model_uri)
 
 
@@ -378,10 +377,10 @@ def main():
             .iloc[0]
         )
         # Import logger to log metrics
-        # logger = logging.getLogger(__name__)
+        logger = logging.getLogger(__name__)
         # Log deltas
         for col in POLLUTANT_COLS:
-            st.info(f"Delta for {col}: {deltas[col]}")
+            logger.info(f"Delta for {col}: {deltas[col]}")
 
         # Compute tomorrow's timestamp
         tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
