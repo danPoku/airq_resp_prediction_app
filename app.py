@@ -350,11 +350,11 @@ def main():
     setup_tracking()
     
     with st.sidebar.expander("ℹ️ About this App", expanded=False):
-        st.markdown("""
+        st.markdown(f"""
             **PulmoPulse** uses climate inputs to predict air-quality pollutants  
             and respiratory disease burden.
             - **Data sources:** OpenWeather API, Ghana Health Service, Visualcrossing API  
-            - **Models:** AirQBoost, PulmoPulse  
+            - **Models:** {AQ_MODEL_NAME} v{AQ_MODEL_VERSION}, {RESP_MODEL_NAME} v{RESP_MODEL_VERSION} 
             - **Contact:** dan.gyinaye@gmail.com
         """)
     
