@@ -257,6 +257,25 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
 #     df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
 #     plot_time_series(df_preds_resp, 'date', RESP_DISEASE_COLS, "Respiratory Disease Forecast Time Series")
 
+def get_today_metrics(df: pd.DataFrame) -> pd.Series:
+    """Get today's metrics from the dataframe.
+    This function filters the dataframe to get the metrics for today.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing date and metrics.
+
+    Returns:
+        pd.Series: Series containing today's metrics or the last available metrics if today is not present.
+    """
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date']).dt.normalize()
+    today = pd.Timestamp.now().normalize()
+    today_df = df[df['date'] == today]
+    if not today_df.empty:
+        return today_df.iloc[0]
+    return df.iloc[-1]
+
+# MAIN Function
 def main():
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
@@ -281,7 +300,7 @@ def main():
     with aq_tab:
         df_preds_aq = show_aq_section(climate_df, aq_model)
         # scorecards
-        latest = df_preds_aq.iloc[-1]
+        latest = get_today_metrics(df_preds_aq)
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("PM₂.₅", f"{latest['pm2_5']:.1f}", delta="–2% vs yesterday")
         col2.metric("PM₁₀", f"{latest['pm10']:.1f}")
