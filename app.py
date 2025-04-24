@@ -161,7 +161,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
     df_out.insert(0, 'date', climate_df['date'].values)
-    # st.dataframe(paginate_df(df_out, "aq_rows", "aq_pages"))
+    st.dataframe(df_out)
     return df_out
 
 
