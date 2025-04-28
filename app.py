@@ -348,7 +348,7 @@ def main():
     # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
     aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
-    resp_model = load_model("runs:/9e8f9e00f45b447082198af48edfdf92/model_artifact")
+    resp_model = load_model("runs:/99d4133effd74085a5c676a225c308bf/model_artifact")
 
     # AQ tab
     with aq_tab:
