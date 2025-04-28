@@ -248,7 +248,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
             y=alt.Y("Value:Q", scale=alt.Scale(type=scale)),
             color=alt.Color("Category:N"),
             opacity=alt.condition(legend, alt.value(1), alt.value(0.2)),
-            tooltip=[id_var, "Date:T" , "Category:N", "Value:Q"],
+            tooltip=[id_var, "date:T" , "Category:N", "Value:Q"],
         )
         .add_params(legend)
         .properties(width=900, height=400)
