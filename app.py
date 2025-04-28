@@ -27,7 +27,7 @@ RESP_DISEASE_COLS = [
     "Upper Respiratory Tract Infection (J00-J06)",
 ]
 AQ_MODEL_NAME, AQ_MODEL_VERSION = "AirQBoost", "0.1.1"
-RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.2"
+RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.3"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 
@@ -248,7 +248,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
             y=alt.Y("Value:Q", scale=alt.Scale(type=scale)),
             color=alt.Color("Category:N"),
             opacity=alt.condition(legend, alt.value(1), alt.value(0.2)),
-            tooltip=[id_var, "date:T" , "Category:N", "Value:Q"],
+            tooltip=[id_var, "Date:T" , "Category:N", "Value:Q"],
         )
         .add_params(legend)
         .properties(width=900, height=400)
