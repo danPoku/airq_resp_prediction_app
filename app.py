@@ -113,12 +113,16 @@ def get_climate_data() -> pd.DataFrame:
         index=0,
         key="climate_data_source",
     )
-    df = None
+
+    if "climate_data" not in st.session_state:
+        st.session_state.climate_data = None
+
     if source == "Fetch data from API":
         url = st.sidebar.text_input("Enter GET URL:", key="api_url_input")
         if st.sidebar.button("Fetch Data", key="api_fetch_btn"):
             try:
                 df = pd.read_csv(url)
+                st.session_state.climate_data = df
                 st.sidebar.success("Data fetched successfully.")
             except Exception as e:
                 st.sidebar.error(f"Error fetching data: {e}")
@@ -129,10 +133,12 @@ def get_climate_data() -> pd.DataFrame:
         if uploaded:
             try:
                 df = pd.read_csv(uploaded)
+                st.session_state.climate_data = df
                 st.sidebar.success("File uploaded successfully.")
             except Exception as e:
                 st.sidebar.error(f"Error reading file: {e}")
-    return df
+
+    return st.session_state.climate_data
 
 
 # Display
