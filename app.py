@@ -14,7 +14,6 @@ import altair as alt
 from feature_engineering import climate_clean_transform
 
 st.set_page_config(page_title="PulmoPulse", page_icon="pulmo_icon.png")
-st.image("pulmo_icon.png", width=100)
 
 # Constants
 POLLUTANT_COLS = ["co", "no", "no2", "o3", "so2", "pm2_5", "pm10", "nh3"]
