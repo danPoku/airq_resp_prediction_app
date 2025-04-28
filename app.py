@@ -343,6 +343,7 @@ def main():
             st.info("Please upload or fetch climate data to begin.")
             return
         raw_page, df_full = show_climate_section(df_raw)
+        st.dataframe(raw_page, use_container_width=True) # Display paginated raw data
 
     # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
