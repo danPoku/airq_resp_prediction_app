@@ -27,7 +27,7 @@ RESP_DISEASE_COLS = [
     "Upper Respiratory Tract Infection (J00-J06)",
 ]
 AQ_MODEL_NAME, AQ_MODEL_VERSION = "AirQBoost", "0.1.1"
-RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.1"
+RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.2"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 
@@ -348,7 +348,7 @@ def main():
     # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
     aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
-    resp_model = load_model("runs:/9b84e0378ccf42379b208c11b8116b6e/model_artifact")
+    resp_model = load_model("runs:/ff92641b2b744151880019f43b95d92b/model_artifact")
 
     # AQ tab
     with aq_tab:
@@ -365,7 +365,7 @@ def main():
         logger = logging.getLogger(__name__)
         # Log deltas
         for col in POLLUTANT_COLS:
-            logger.info(f"Delta for {col}: {deltas[col]}")
+            logger.info("Delta for %s: %s", col, deltas[col])
 
         # Compute tomorrow's timestamp
         tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
