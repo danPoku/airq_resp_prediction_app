@@ -31,7 +31,6 @@ RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.3"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 
-# Setup
 def setup_tracking():
     """Set up MLflow tracking URI."""
     mlflow.set_tracking_uri(MLFLOW_URI)
@@ -72,7 +71,6 @@ def validate_schema(
     return expected, missing, extra
 
 
-# Paginate
 def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
     """
     Paginate a dataframe for display in Streamlit.
@@ -98,7 +96,7 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
     return df.iloc[start:end]
 
 
-# Sidebar
+# Sidebar functions
 def get_climate_data() -> pd.DataFrame:
     """Get climate data from user input.
     This function allows the user to either upload a CSV file or fetch data from an API.
@@ -141,7 +139,6 @@ def get_climate_data() -> pd.DataFrame:
     return st.session_state.climate_data
 
 
-# Display
 def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Show climate data section.
 
@@ -256,8 +253,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
     st.altair_chart(chart, use_container_width=True)
 
 
-# Main
-
+# Main functions
 def get_today_metrics(df: pd.DataFrame) -> pd.Series:
     """Get today's metrics from the dataframe.
     This function filters the dataframe to get the metrics for today.
@@ -283,26 +279,26 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     to 'today + 1 day' as present in df.
     If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
     """
-    # 1) Copy, normalize and sort by date
+    # Copy, normalize and sort by date
     df2 = df.copy()
     df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
     df2 = df2.sort_values("date").reset_index(drop=True)
 
-    # 2) Define today and tomorrow
+    # Define today and tomorrow
     today_ts = pd.Timestamp(date.today())
     next_ts = today_ts + pd.Timedelta(days=1)
 
-    # 3) Check that tomorrow exists in your data
+    # Check that tomorrow exists in data
     if next_ts not in set(df2["date"]):
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
-    # 4) Locate positions
+    # Locate positions
     tomorrow_idx = df2.index[df2["date"] == next_ts][0]
     prev_idx = tomorrow_idx - 1
     if prev_idx < 0:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
-    # 5) Compute deltas
+    # Compute deltas
     deltas = {}
     for col in POLLUTANT_COLS:
         prev = df2.at[prev_idx, col]
@@ -315,7 +311,7 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
         else:
             deltas[col] = "N/A"
 
-    # 6) Return a Series so you can do things like deltas["pm2_5"]
+    # Return a Series
     return pd.Series(deltas)
 
 
@@ -343,7 +339,7 @@ def main():
             st.info("Please upload or fetch climate data to begin.")
             return
         raw_page, df_full = show_climate_section(df_raw)
-        st.dataframe(raw_page, use_container_width=True) # Display paginated raw data
+        st.dataframe(raw_page, use_container_width=True)
 
     # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
