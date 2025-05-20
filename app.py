@@ -55,14 +55,16 @@ def validate_schema(
     df: pd.DataFrame, model: PyFuncModel
 ) -> Tuple[List[str], Set[str], Set[str]] | None:
     """Validate the input dataframe against the model's expected schema.
-    This function checks for missing and extra columns in the dataframe compared to the model's input signature.
-
+    This function checks for missing and extra columns in the dataframe compared 
+    to the model's input signature.
+    
     Args:
         df (pd.DataFrame): Input dataframe to validate.
         model (PyFuncModel): The model to validate against.
 
     Returns:
-        Tuple[List[str], Set[str], Set[str]]: A tuple containing the expected columns, missing columns, and extra columns.
+        Tuple[List[str], Set[str], Set[str]]: A tuple containing the expected 
+        columns, missing columns, and extra columns.
     """
     sig = model.metadata.signature
     expected = [inp.name for inp in sig.inputs]
@@ -78,17 +80,17 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
     """
     rows = st.number_input(
         "Rows per page", 
-        min_value=5, 
-        max_value=50, 
-        value=10, 
+        min_value=5,
+        max_value=50,
+        value=10,
         key=rows_key
     )
     total = (len(df) + rows - 1) // rows
     page = st.number_input(
         "Page", 
-        min_value=1, 
-        max_value=total, 
-        value=1, 
+        min_value=1,
+        max_value=total,
+        value=1,
         key=page_key
     )
     start = (page - 1) * rows
@@ -146,7 +148,8 @@ def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame] 
         df (pd.DataFrame): Dataframe containing climate data.
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame]: Tuple containing the paginated dataframe and the full dataframe.
+        Tuple[pd.DataFrame, pd.DataFrame]: Tuple containing the paginated dataframe
+        and the full dataframe.
     """
     st.subheader("Climate Data")
     # df['date'] = pd.to_datetime(df['date'])
@@ -262,7 +265,8 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
         df (pd.DataFrame): DataFrame containing date and metrics.
 
     Returns:
-        pd.Series: Series containing today's metrics or the last available metrics if today is not present.
+        pd.Series: Series containing today's metrics or the last available 
+        metrics if today is not present.
     """
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"]).dt.normalize()
@@ -315,20 +319,20 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
     return pd.Series(deltas)
 
 
-# MAIN Function
 def main():
+    """Main function to run the Streamlit app.
+    This function sets up the Streamlit app, handles user input, and displays the results."""
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
     setup_tracking()
-    
+
     with st.sidebar.expander("ℹ️ About this App", expanded=False):
         st.markdown(f"""
             **PulmoPulse** uses climate inputs to predict air-quality pollutants  
             and respiratory disease burden.
             - **Data sources:** OpenWeather API, Ghana Health Service, Visualcrossing API  
-            - **Models:** {AQ_MODEL_NAME} v{AQ_MODEL_VERSION}, {RESP_MODEL_NAME} v{RESP_MODEL_VERSION} 
+            - **Models:** {AQ_MODEL_NAME} v{AQ_MODEL_VERSION}, {RESP_MODEL_NAME} v{RESP_MODEL_VERSION}
             - **Contact:** dan.gyinaye@gmail.com
-        """)
-    
+            """)
     tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality Forecast", "🫁 Respiratory Forecast"])
     climate_tab, aq_tab, resp_tab = tabs
 
