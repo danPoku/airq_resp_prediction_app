@@ -1,7 +1,7 @@
 import os
 from typing import Tuple, List, Set
 from datetime import date
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 import streamlit as st
 import pandas as pd
@@ -9,6 +9,8 @@ import mlflow
 import mlflow.pyfunc
 from mlflow.pyfunc import PyFuncModel
 import altair as alt
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 from feature_engineering import climate_clean_transform
@@ -99,6 +101,36 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
 
 
 # Sidebar functions
+def fetch_climate_from_db():
+    """Fetch climate forecast from AWS RDS PostgreSQL database for today to today+14 days."""
+    DB_HOST = os.environ.get("DB_HOST")
+    DB_PORT = os.environ.get("DB_PORT")
+    DB_NAME = os.environ.get("DB_NAME")
+    DB_USER = os.environ.get("DB_USER")
+    DB_PASS = os.environ.get("DB_PASSWORD")
+    today = date.today()
+    end_date = today + timedelta(days=14)
+    query = """
+        SELECT * FROM climate_forecast
+        WHERE date >= %s AND date <= %s
+    """
+    with psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS
+    ) as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, (today, end_date))
+            rows = cursor.fetchall()
+            if not rows:
+                st.sidebar.error("No data available for the selected date range.")
+                return None
+            df = pd.DataFrame(rows)
+            return df
+
+
 def get_climate_data() -> pd.DataFrame | None:
     """Get climate data from user input.
     This function allows the user to either upload a CSV file or fetch data from an API.
@@ -137,7 +169,15 @@ def get_climate_data() -> pd.DataFrame | None:
                 st.sidebar.success("File uploaded successfully.")
             except Exception as e:
                 st.sidebar.error(f"Error reading file: {e}")
-
+    if st.session_state.climate_data is None:
+        st.sidebar.info("No data provided. Fetching climate forecast from Visual Crosssing...")
+        try:
+            df = fetch_climate_from_db()
+            if df is not None:
+                st.session_state.climate_data = df
+                st.sidebar.success("Data fetched successfully.")
+        except Exception as e:
+            st.sidebar.error(f"Error fetching data: {e}")
     return st.session_state.climate_data
 
 
