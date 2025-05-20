@@ -37,7 +37,7 @@ def setup_tracking():
 
 
 @st.cache_resource
-def load_model(model_uri: str) -> PyFuncModel:
+def load_model(model_uri: str) -> PyFuncModel | None:
     """Load a model from the specified URI.
     This function uses the MLflow library to load a model from a given URI.
 
@@ -53,7 +53,7 @@ def load_model(model_uri: str) -> PyFuncModel:
 
 def validate_schema(
     df: pd.DataFrame, model: PyFuncModel
-) -> Tuple[List[str], Set[str], Set[str]]:
+) -> Tuple[List[str], Set[str], Set[str]] | None:
     """Validate the input dataframe against the model's expected schema.
     This function checks for missing and extra columns in the dataframe compared to the model's input signature.
 
@@ -71,7 +71,7 @@ def validate_schema(
     return expected, missing, extra
 
 
-def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
+def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame | None:
     """
     Paginate a dataframe for display in Streamlit.
     Inputs now live in the main pane—so only visible in the active tab.
@@ -97,12 +97,12 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame:
 
 
 # Sidebar functions
-def get_climate_data() -> pd.DataFrame:
+def get_climate_data() -> pd.DataFrame | None:
     """Get climate data from user input.
     This function allows the user to either upload a CSV file or fetch data from an API.
 
     Returns:
-        pd.DataFrame: Dataframe containing the climate data.
+        pd.DataFrame | None: Dataframe containing the climate data or None if no data is available.
     """
     st.sidebar.header("Climate Data Source")
     source = st.sidebar.radio(
@@ -139,7 +139,7 @@ def get_climate_data() -> pd.DataFrame:
     return st.session_state.climate_data
 
 
-def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame] | None:
     """Show climate data section.
 
     Args:
@@ -153,7 +153,7 @@ def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return paginate_df(df, "climate_rows", "climate_pages"), df
 
 
-def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame:
+def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataFrame | None:
     """Show air quality predictions based on climate data.
     This function validates the input data against the model's expected schema and
     generates predictions for air quality pollutants.
@@ -182,7 +182,7 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
 
 def show_resp_section(
     climate_df: pd.DataFrame, df_preds_aq: pd.DataFrame, resp_model: PyFuncModel
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """Show respiratory disease predictions based on climate data and air quality predictions.
 
     Args:
@@ -254,7 +254,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
 
 
 # Main functions
-def get_today_metrics(df: pd.DataFrame) -> pd.Series:
+def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
     """Get today's metrics from the dataframe.
     This function filters the dataframe to get the metrics for today.
 
@@ -273,7 +273,7 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series:
     return df.iloc[-1]
 
 
-def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
+def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
     """
     For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
     to 'today + 1 day' as present in df.
