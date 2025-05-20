@@ -112,7 +112,7 @@ def fetch_climate_from_db():
     end_date = today + timedelta(days=14)
     query = """
         SELECT * FROM climate_forecast
-        WHERE date >= %s AND date <= %s
+        WHERE datetime >= %s AND datetime <= %s
     """
     with psycopg2.connect(
         host=DB_HOST,
