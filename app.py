@@ -322,46 +322,45 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
         return today_df.iloc[0]
     return df.iloc[-1]
 
-
-def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
+def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     """
     For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
     to 'today + 1 day' as present in df.
     If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
     """
-    # Copy, normalize and sort by date
+    # 1) Copy, normalize and sort by date
     df2 = df.copy()
     df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
     df2 = df2.sort_values("date").reset_index(drop=True)
 
-#     # Define today and tomorrow
-#     today = pd.Timestamp(date.today())
-#     tomorrow = today + pd.Timedelta(days=1)
+    # 2) Define today and tomorrow
+    today_ts = pd.Timestamp(date.today())
+    next_ts = today_ts + pd.Timedelta(days=1)
 
-    # Check that tomorrow exists in data
+    # 3) Check that tomorrow exists in your data
     if next_ts not in set(df2["date"]):
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
-    # Locate positions
+    # 4) Locate positions
     tomorrow_idx = df2.index[df2["date"] == next_ts][0]
     prev_idx = tomorrow_idx - 1
     if prev_idx < 0:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
-    # compute deltas
-    deltas: dict[str, str] = {}
+    # 5) Compute deltas
+    deltas = {}
     for col in POLLUTANT_COLS:
         prev = df2.at[prev_idx, col]
         curr = df2.at[tomorrow_idx, col]
         # Guard against zero‐division
         if pd.notna(prev) and prev != 0:
-            pct_change = (curr - prev) / prev * 100
-            sign = "+" if pct_change >= 0 else ""
-            deltas[col] = f"{sign}{pct_change:.1f}%"
+            pct = (curr - prev) / prev * 100
+            sign = "+" if pct >= 0 else ""
+            deltas[col] = f"{sign}{pct:.1f}%"
         else:
             deltas[col] = "N/A"
 
-    # Return a Series
+    # 6) Return a Series so you can do things like deltas["pm2_5"]
     return pd.Series(deltas)
 
 
