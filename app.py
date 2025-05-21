@@ -32,19 +32,8 @@ RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.3"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 
-# def setup_tracking() -> str | None:
-#     """Set up MLflow tracking URI."""
-#     try:
-#         mlflow.set_tracking_uri(MLFLOW_URI)
-#         return mlflow.get_tracking_uri()
-#     except KeyError:
-#         log.warning(
-#             "MLFLOW_TRACKING_URI not set. Running without experiment tracking"
-#         )
-#         return None
-
 @st.cache_resource
-def load_model(model_uri: str) -> PyFuncModel | None:
+def load_model(model_uri: str) -> PyFuncModel:
     """Load a model from the specified URI.
     This function uses the MLflow library to load a model from a given URI.
 
@@ -74,6 +63,10 @@ def validate_schema(
         columns, missing columns, and extra columns.
     """
     sig = model.metadata.signature
+    if sig is None:
+        log.error("Model signature not found.")
+        st.error("Model signature not found.")
+        return None
     expected = [inp.name for inp in sig.inputs]
     missing = set(expected) - set(df.columns)
     extra = set(df.columns) - set(expected)
@@ -118,6 +111,7 @@ def fetch_climate_from_db():
     query = """
         SELECT * FROM climate_forecast
         WHERE datetime >= %s AND datetime <= %s
+        ORDER BY datetime
     """
     with psycopg2.connect(
         host=DB_HOST,
@@ -197,7 +191,6 @@ def show_climate_section(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame] 
         and the full dataframe.
     """
     st.subheader("Climate Data")
-    # df['date'] = pd.to_datetime(df['date'])
     return paginate_df(df, "climate_rows", "climate_pages"), df
 
 
@@ -217,9 +210,9 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
     exp, miss, extra = validate_schema(climate_df, aq_model)
     if miss:
         st.error(f"Missing for AQ: {miss}")
-        st.stop()
+        return None
     if extra:
-        st.warning("Less important climate features ignored.")
+        st.warning(f"Less important climate features ignored: {extra}")
     df_input = climate_df[exp].astype(float)
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
@@ -283,7 +276,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
         key=f"{title}_select",
     )
     filtered = df_melt[df_melt["Category"].isin(selected)]
-    scale = st.radio("Y-axis scale", ["linear", "log"], index=0, key=f"{title}_scale")
+    scale = st.radio("Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
     legend = alt.selection_point(fields=["Category"], bind="legend")
     chart = (
         alt.Chart(filtered)
@@ -293,7 +286,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
             y=alt.Y("Value:Q", scale=alt.Scale(type=scale)),
             color=alt.Color("Category:N"),
             opacity=alt.condition(legend, alt.value(1), alt.value(0.2)),
-            tooltip=[id_var, "date:T" , "Category:N", "Value:Q"],
+            tooltip=[f"{id_var}:T", "date:T" , "Category:N", "Value:Q"],
         )
         .add_params(legend)
         .properties(width=900, height=400)
@@ -368,7 +361,6 @@ def main():
     """Main function to run the Streamlit app.
     This function sets up the Streamlit app, handles user input, and displays the results."""
     st.title("Accra Air Quality and Respiratory Disease Forecasting")
-    # setup_tracking()
 
     with st.sidebar.expander("ℹ️ About this App", expanded=False):
         st.markdown(f"""
