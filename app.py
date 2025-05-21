@@ -332,21 +332,22 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
     tomorrow = today + pd.Timedelta(days=1)
 
     # Check that tomorrow exists in data
-    df2 = df2.set_index("date")
     if tomorrow not in df2.index:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
     # Locate positions
-    tomorrow_idx = df2.index[df2["date"] == tomorrow][0]
-    prev_idx = tomorrow_idx - 1
-    if prev_idx < 0:
+    pos = df2.index.get_loc(tomorrow)
+    if pos == 0:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+    
+    prev_row = df2.iloc[pos - 1]
+    curr_row = df2.iloc[pos]
 
     # Compute deltas
     deltas = {}
     for col in POLLUTANT_COLS:
-        prev = df2.at[prev_idx, col]
-        curr = df2.at[tomorrow_idx, col]
+        prev = prev_row[col]
+        curr = curr_row[col]
         # Guard against zero‐division
         if pd.notna(prev) and prev != 0:
             pct = (curr - prev) / prev * 100
