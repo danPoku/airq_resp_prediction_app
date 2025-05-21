@@ -328,15 +328,16 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
     df2 = df2.sort_values("date").reset_index(drop=True)
 
     # Define today and tomorrow
-    today_ts = pd.Timestamp(date.today())
-    next_ts = today_ts + pd.Timedelta(days=1)
+    today = pd.Timestamp(date.today())
+    tomorrow = today + pd.Timedelta(days=1)
 
     # Check that tomorrow exists in data
-    if next_ts not in set(df2["date"]):
+    df2 = df2.set_index("date")
+    if tomorrow not in df2.index:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
 
     # Locate positions
-    tomorrow_idx = df2.index[df2["date"] == next_ts][0]
+    tomorrow_idx = df2.index[df2["date"] == tomorrow][0]
     prev_idx = tomorrow_idx - 1
     if prev_idx < 0:
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
