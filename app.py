@@ -392,7 +392,8 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
         prev, curr = prev_row[col], curr_row[col]
         if pd.notna(prev) and prev != 0:
             pct_change = (curr - prev) / prev * 100
-            deltas[col] = f"{pct_change:+.1f}%"
+            sign = "+" if pct_change >= 0 else ""
+            deltas[col] = f"{sign}{pct_change:.1f}%"
         else:
             deltas[col] = "N/A"
 
