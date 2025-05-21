@@ -9,10 +9,8 @@ from mlflow.pyfunc import PyFuncModel
 import altair as alt
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import logging
-from feature_engineering import climate_clean_transform
 
-log = logging.getLogger(__name__)
+from feature_engineering import climate_clean_transform
 
 st.set_page_config(page_title="PulmoPulse", page_icon="pulmo_icon.png")
 
@@ -30,18 +28,6 @@ RESP_DISEASE_COLS = [
 AQ_MODEL_NAME, AQ_MODEL_VERSION = "AirQBoost", "0.1.1"
 RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.3"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
-
-
-# def setup_tracking() -> str | None:
-#     """Set up MLflow tracking URI."""
-#     try:
-#         mlflow.set_tracking_uri(MLFLOW_URI)
-#         return mlflow.get_tracking_uri()
-#     except KeyError:
-#         log.warning(
-#             "MLFLOW_TRACKING_URI not set. Running without experiment tracking"
-#         )
-#         return None
 
 @st.cache_resource
 def load_model(model_uri: str) -> PyFuncModel | None:
