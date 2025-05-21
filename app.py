@@ -316,80 +316,40 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
     return df.iloc[-1]
 
 
-# def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
-#     """
-#     For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
-#     to 'today + 1 day' as present in df.
-#     If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
-#     """
-#     # Copy, normalize and sort by date
-#     df2 = df.copy()
-#     df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
-#     df2 = df2.sort_values("date").reset_index(drop=True)
+def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
+    """
+    For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
+    to 'today + 1 day' as present in df.
+    If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
+    """
+    # Copy, normalize and sort by date
+    df2 = df.copy()
+    df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
+    df2 = df2.sort_values("date").set_index("date")
 
 #     # Define today and tomorrow
 #     today = pd.Timestamp(date.today())
 #     tomorrow = today + pd.Timedelta(days=1)
 
-#     # Check that tomorrow exists in data
-#     if tomorrow not in df2.index:
-#         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
-
-#     # Locate positions
-#     pos = df2.index.get_loc(tomorrow)
-#     if pos == 0:
-#         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+    # Check that tomorrow exists in data
+    if next_ts not in df2.index:
+        st.warning("Tomorrow's data not available.")
+        return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
     
-#     prev_row = df2.iloc[pos - 1]
-#     curr_row = df2.iloc[pos]
-
-#     # Compute deltas
-#     deltas = {}
-#     for col in POLLUTANT_COLS:
-#         prev = prev_row[col]
-#         curr = curr_row[col]
-#         # Guard against zero‐division
-#         if pd.notna(prev) and prev != 0:
-#             pct = (curr - prev) / prev * 100
-#             sign = "+" if pct >= 0 else ""
-#             deltas[col] = f"{sign}{pct:.1f}%"
-#         else:
-#             deltas[col] = "N/A"
-
-#     # Return a Series
-#     return pd.Series(deltas)
-def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
-    """
-    Percent change for each pollutant from today to tomorrow.
-    Returns "N/A" for any value that cannot be computed.
-    """
-    if "date" not in df.columns:
-        raise ValueError("'date' column is required")
-
-    # prepare dataframe 
-    df = df.copy()
-    df["date"] = pd.to_datetime(df["date"]).dt.normalize()
-    df.sort_values("date", inplace=True)
-    df.set_index("date", inplace=True)
-
-    today = pd.Timestamp(date.today())
-    tomorrow = today + pd.Timedelta(days=1)
-
-    # guard clauses
-    if tomorrow not in df.index:
-        return pd.Series({c: "N/A" for c in POLLUTANT_COLS})
-
-    pos = df.index.get_loc(tomorrow)
-    if pos == 0:                              # no prior row
-        return pd.Series({c: "N/A" for c in POLLUTANT_COLS})
-
-    prev_row = df.iloc[pos - 1]
-    curr_row = df.iloc[pos]
+    # Locate positions
+    tomorrow_idx = df2.index.get_loc(next_ts)
+    if tomorrow_idx == 0:
+        st.warning("No previous data available.")
+        return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+    
+    prev_idx = df2.iloc[tomorrow_idx - 1]
+    tomorrow_idx = df2.iloc[tomorrow_idx]
 
     # compute deltas
     deltas: dict[str, str] = {}
     for col in POLLUTANT_COLS:
-        prev, curr = prev_row[col], curr_row[col]
+        prev, curr = prev_idx[col], tomorrow_idx[col] 
+        # Prevent zero‐division
         if pd.notna(prev) and prev != 0:
             pct_change = (curr - prev) / prev * 100
             sign = "+" if pct_change >= 0 else ""
@@ -397,6 +357,7 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
         else:
             deltas[col] = "N/A"
 
+    # Return a Series
     return pd.Series(deltas)
 
 
