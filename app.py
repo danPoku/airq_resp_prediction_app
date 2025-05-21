@@ -324,28 +324,31 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
     # Copy, normalize and sort by date
     df2 = df.copy()
     df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
-    df2 = df2.sort_values("date").reset_index(drop=True)
+    df2 = df2.sort_values("date").set_index("date")
 
     # Define today and tomorrow
     today_ts = pd.Timestamp(date.today())
     next_ts = today_ts + pd.Timedelta(days=1)
 
     # Check that tomorrow exists in data
-    if next_ts not in set(df2["date"]):
+    if next_ts not in df2.index:
+        st.warning("Tomorrow's data not available.")
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
-
+    
     # Locate positions
-    tomorrow_idx = df2.index[df2["date"] == next_ts][0]
-    prev_idx = tomorrow_idx - 1
-    if prev_idx < 0:
+    tomorrow_idx = df2.index.get_loc(next_ts)
+    if tomorrow_idx == 0:
+        st.warning("No previous data available.")
         return pd.Series({col: "N/A" for col in POLLUTANT_COLS})
+    
+    prev_idx = df2.iloc[tomorrow_idx - 1]
+    tomorrow_idx = df2.iloc[tomorrow_idx]
 
     # Compute deltas
     deltas = {}
     for col in POLLUTANT_COLS:
-        prev = df2.at[prev_idx, col]
-        curr = df2.at[tomorrow_idx, col]
-        # Guard against zero‐division
+        prev, curr = prev_idx[col], tomorrow_idx[col] 
+        # Prevent zero‐division
         if pd.notna(prev) and prev != 0:
             pct = (curr - prev) / prev * 100
             sign = "+" if pct >= 0 else ""
@@ -353,7 +356,6 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series | None:
         else:
             deltas[col] = "N/A"
 
-    # Return a Series
     return pd.Series(deltas)
 
 
