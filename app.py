@@ -284,7 +284,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
         key=f"{title}_select",
     )
     filtered = df_melt[df_melt["Category"].isin(selected)]
-    scale = st.radio("Y-axis scale", ["linear", "log"], index=0, key=f"{title}_scale")
+    scale = st.radio("Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
     legend = alt.selection_point(fields=["Category"], bind="legend")
     chart = (
         alt.Chart(filtered)
@@ -294,7 +294,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
             y=alt.Y("Value:Q", scale=alt.Scale(type=scale)),
             color=alt.Color("Category:N"),
             opacity=alt.condition(legend, alt.value(1), alt.value(0.2)),
-            tooltip=[id_var, "date:T" , "Category:N", "Value:Q"],
+            tooltip=[f"{id_var}:T", "date:T" , "Category:N", "Value:Q"],
         )
         .add_params(legend)
         .properties(width=900, height=400)
