@@ -99,6 +99,7 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
 
 
 # Sidebar functions
+@st.cache_data(ttl=900)
 def fetch_climate_from_db():
     """Fetch climate forecast from AWS RDS PostgreSQL database for today to today+14 days."""
     DB_HOST = os.environ.get("DB_HOST")
