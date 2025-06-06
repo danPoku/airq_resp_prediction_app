@@ -214,12 +214,13 @@ def air_clean_transform(dataframe):
     # Rename dt to date
     dataframe.rename(columns={"dt": "date"}, inplace=True)
 
-    # Convert unix timestamp to datetime
-    dataframe["date"] = pd.to_datetime(dataframe["date"], unit="s")
+    # Convert unix timestamp to datetime and drop the time component
+    dataframe["date"] = pd.to_datetime(dataframe["date"], unit="s").dt.floor("D")
 
-    # Air quality raw dataframe is recorded per hour.
-    # Aggregated dataframe into daily averages
-    dataframe = dataframe.groupby("date").mean().reset_index()
+    # Air quality raw dataframe is recorded per hour. Aggregate into daily means
+    dataframe = (
+        dataframe.groupby("date").mean(numeric_only=True).reset_index()
+    )
 
     # Drop irrelevant feature
     dataframe.drop("aqi", axis=1, inplace=True)
