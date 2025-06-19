@@ -159,7 +159,7 @@ def get_climate_data() -> pd.DataFrame | None:
             try:
                 df = pd.read_csv(url)
                 st.session_state.climate_data = df
-                st.sidebar.success("Data fetched from Visual Crossing API.")
+                st.sidebar.success("Climate Data fetched from Visual Crossing.")
             except Exception as e:
                 st.sidebar.error(
                     f"Error fetching data from Visual Crossing API: {e}")
@@ -177,7 +177,7 @@ def get_climate_data() -> pd.DataFrame | None:
                 st.sidebar.success("File uploaded successfully.")
             except Exception as e:
                 st.sidebar.error(f"Error reading file: {e}")
-    # Comment out database fallback
+    # Fallback
     # if st.session_state.climate_data is None:
     #     st.sidebar.info("No data provided. Fetching climate forecast from Visual Crosssing...")
     #     try:
@@ -332,7 +332,7 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     """
     For each pollutant in POLLUTANT_COLS, compute the % change from 'today'
     to 'today + 1 day' as present in df.
-    If tomorrow’s row isn't in df, or there's no prior row, returns "N/A".
+    If tomorrow's row isn't in df, or there's no prior row, returns "N/A".
     """
     # 1) Copy, normalize and sort by date
     df2 = df.copy()
@@ -416,7 +416,7 @@ def main():
             .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method="ffill")
             .iloc[0]
         )
-        # Import logger to log metrics
+        # Log metrics
         logger = logging.getLogger(__name__)
         # Log deltas
         for col in POLLUTANT_COLS:
