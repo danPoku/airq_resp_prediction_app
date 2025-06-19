@@ -29,6 +29,7 @@ AQ_MODEL_NAME, AQ_MODEL_VERSION = "AirQBoost", "0.1.1"
 RESP_MODEL_NAME, RESP_MODEL_VERSION = "PulmoPulse", "0.1.3"
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
+
 @st.cache_resource
 def load_model(model_uri: str) -> PyFuncModel | None:
     """Load a model from the specified URI.
@@ -50,7 +51,7 @@ def validate_schema(
     """Validate the input dataframe against the model's expected schema.
     This function checks for missing and extra columns in the dataframe compared 
     to the model's input signature.
-    
+
     Args:
         df (pd.DataFrame): Input dataframe to validate.
         model (PyFuncModel): The model to validate against.
@@ -72,7 +73,7 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
     Inputs now live in the main pane—so only visible in the active tab.
     """
     rows = st.number_input(
-        "Rows per page", 
+        "Rows per page",
         min_value=5,
         max_value=50,
         value=10,
@@ -80,14 +81,14 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
     )
     total = (len(df) + rows - 1) // rows
     page = st.number_input(
-        "Page", 
+        "Page",
         min_value=1,
         max_value=total,
         value=1,
         key=page_key
     )
     start = (page - 1) * rows
-    end   = start + rows
+    end = start + rows
     return df.iloc[start:end]
 
 
@@ -117,7 +118,8 @@ def fetch_climate_from_db():
             cursor.execute(query, (today, end_date))
             rows = cursor.fetchall()
             if not rows:
-                st.sidebar.error("No data available for the selected date range.")
+                st.sidebar.error(
+                    "No data available for the selected date range.")
                 return None
             df = pd.DataFrame(rows)
             return df
@@ -133,7 +135,7 @@ def get_climate_data() -> pd.DataFrame | None:
     st.sidebar.header("Climate Data Source")
     source = st.sidebar.radio(
         "Choose data input method:",
-        ["Upload CSV", "Fetch data from API"],
+        ["Fetch data from API", "Upload CSV"],
         index=0,
         key="climate_data_source",
     )
@@ -142,14 +144,28 @@ def get_climate_data() -> pd.DataFrame | None:
         st.session_state.climate_data = None
 
     if source == "Fetch data from API":
-        url = st.sidebar.text_input("Enter GET URL:", key="api_url_input")
-        if st.sidebar.button("Fetch Data", key="api_fetch_btn"):
+        # url = st.sidebar.text_input("Enter GET URL:", key="api_url_input")
+        # if st.sidebar.button("Fetch Data", key="api_fetch_btn"):
+        #     try:
+        #         df = pd.read_csv(url)
+        #         st.session_state.climate_data = df
+        #         st.sidebar.success("Data fetched successfully.")
+        #     except Exception as e:
+        #         st.sidebar.error(f"Error fetching data: {e}")
+        # Instead, automatically fetch from Visual Crossing API
+        api_key = os.environ.get("VISUAL_CROSSING_KEY")
+        if api_key:
+            url = f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Accra%2C%20Ghana?include=days&key={api_key}&contentType=csv"
             try:
                 df = pd.read_csv(url)
                 st.session_state.climate_data = df
-                st.sidebar.success("Data fetched successfully.")
+                st.sidebar.success("Data fetched from Visual Crossing API.")
             except Exception as e:
-                st.sidebar.error(f"Error fetching data: {e}")
+                st.sidebar.error(
+                    f"Error fetching data from Visual Crossing API: {e}")
+        else:
+            st.sidebar.error(
+                "Visual Crossing API key not set in environment variable VISUAL_CROSSING_KEY.")
     else:
         uploaded = st.sidebar.file_uploader(
             "Upload climate CSV", type=["csv"], key="csv_uploader"
@@ -161,15 +177,16 @@ def get_climate_data() -> pd.DataFrame | None:
                 st.sidebar.success("File uploaded successfully.")
             except Exception as e:
                 st.sidebar.error(f"Error reading file: {e}")
-    if st.session_state.climate_data is None:
-        st.sidebar.info("No data provided. Fetching climate forecast from Visual Crosssing...")
-        try:
-            df = fetch_climate_from_db()
-            if df is not None:
-                st.session_state.climate_data = df
-                st.sidebar.success("Data fetched successfully.")
-        except Exception as e:
-            st.sidebar.error(f"Error fetching data: {e}")
+    # Comment out database fallback
+    # if st.session_state.climate_data is None:
+    #     st.sidebar.info("No data provided. Fetching climate forecast from Visual Crosssing...")
+    #     try:
+    #         df = fetch_climate_from_db()
+    #         if df is not None:
+    #             st.session_state.climate_data = df
+    #             st.sidebar.success("Data fetched successfully.")
+    #     except Exception as e:
+    #         st.sidebar.error(f"Error fetching data: {e}")
     return st.session_state.climate_data
 
 
@@ -270,17 +287,19 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
         key=f"{title}_select",
     )
     filtered = df_melt[df_melt["Category"].isin(selected)]
-    scale = st.radio("Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
+    scale = st.radio(
+        "Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
     legend = alt.selection_point(fields=["Category"], bind="legend")
     chart = (
         alt.Chart(filtered)
         .mark_line(strokeWidth=3)
         .encode(
-            x=alt.X(f"{id_var}:T", axis=alt.Axis(format="%b %d", labelAngle=-45)),
+            x=alt.X(f"{id_var}:T", axis=alt.Axis(
+                format="%b %d", labelAngle=-45)),
             y=alt.Y("Value:Q", scale=alt.Scale(type=scale)),
             color=alt.Color("Category:N"),
             opacity=alt.condition(legend, alt.value(1), alt.value(0.2)),
-            tooltip=[f"{id_var}:T", "date:T" , "Category:N", "Value:Q"],
+            tooltip=[f"{id_var}:T", "date:T", "Category:N", "Value:Q"],
         )
         .add_params(legend)
         .properties(width=900, height=400)
@@ -307,6 +326,7 @@ def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
     if not today_df.empty:
         return today_df.iloc[0]
     return df.iloc[-1]
+
 
 def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     """
@@ -364,7 +384,8 @@ def main():
             - **Models:** {AQ_MODEL_NAME} v{AQ_MODEL_VERSION}, {RESP_MODEL_NAME} v{RESP_MODEL_VERSION}
             - **Contact:** dan.gyinaye@gmail.com
             """)
-    tabs = st.tabs(["📊 Climate Data", "🌫️ Air Quality Forecast", "🫁 Respiratory Forecast"])
+    tabs = st.tabs(
+        ["📊 Climate Data", "🌫️ Air Quality Forecast", "🫁 Respiratory Forecast"])
     climate_tab, aq_tab, resp_tab = tabs
 
     # climate tab
@@ -378,8 +399,10 @@ def main():
 
     # clean & load models once
     climate_df = climate_clean_transform(df_full.copy())
-    aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
-    resp_model = load_model("runs:/99d4133effd74085a5c676a225c308bf/model_artifact")
+    aq_model = load_model(
+        "runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
+    resp_model = load_model(
+        "runs:/99d4133effd74085a5c676a225c308bf/model_artifact")
 
     # AQ tab
     with aq_tab:
@@ -387,7 +410,8 @@ def main():
         deltas = compute_deltas_next_day(df_preds_aq)
         # scorecard metrics
         metrics = (
-            df_preds_aq.assign(date=pd.to_datetime(df_preds_aq["date"]).dt.normalize())
+            df_preds_aq.assign(date=pd.to_datetime(
+                df_preds_aq["date"]).dt.normalize())
             .set_index("date")
             .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method="ffill")
             .iloc[0]
@@ -410,8 +434,10 @@ def main():
         col2.metric(
             "PM₁₀", f"{metrics['pm10']:.1f}", deltas["pm10"], delta_color="inverse"
         )
-        col3.metric("O₃", f"{metrics['o3']:.1f}", deltas["o3"], delta_color="inverse")
-        col4.metric("CO", f"{metrics['co']:.1f}", deltas["co"], delta_color="inverse")
+        col3.metric("O₃", f"{metrics['o3']:.1f}",
+                    deltas["o3"], delta_color="inverse")
+        col4.metric("CO", f"{metrics['co']:.1f}",
+                    deltas["co"], delta_color="inverse")
         col5.metric(
             "NO₂", f"{metrics['no2']:.1f}", deltas["no2"], delta_color="inverse"
         )
