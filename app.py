@@ -9,8 +9,12 @@ from mlflow.pyfunc import PyFuncModel
 import altair as alt
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 
 from feature_engineering import climate_clean_transform
+
+# Load environment variables
+load_dotenv()
 
 st.set_page_config(page_title="PulmoPulse", page_icon="pulmo_icon.png")
 
