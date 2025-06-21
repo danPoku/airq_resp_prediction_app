@@ -83,8 +83,10 @@ def climate_clean_transform(dataframe):
     dataframe["uvindex"] = dataframe["uvindex"].interpolate(method="linear")
 
     # Drop irrelevant features
-    dataframe.drop(["snow", "snowdepth"], axis=1, inplace=True)
-    dataframe = remove_unnamed_col(dataframe)
+    # if snow and snowdepth are not present skip this step
+    if "snow" in dataframe.columns and "snowdepth" in dataframe.columns:
+        dataframe.drop(["snow", "snowdepth"], axis=1, inplace=True)
+        dataframe = remove_unnamed_col(dataframe)
 
     # DERIVED FEATURES
     # Duirnal Temperature Range

@@ -227,7 +227,8 @@ def show_aq_section(climate_df: pd.DataFrame, aq_model: PyFuncModel) -> pd.DataF
         st.error(f"Missing for AQ: {miss}")
         st.stop()
     if extra:
-        st.warning("Less important climate features ignored.")
+        # st.warning("Less important climate features ignored.")
+        pass
     df_input = climate_df[exp].astype(float)
     preds = aq_model.predict(df_input)
     df_out = pd.DataFrame(preds, columns=POLLUTANT_COLS)
