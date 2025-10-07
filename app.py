@@ -12,6 +12,14 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 from feature_engineering import climate_clean_transform
+from advisory_engine import (
+    summarize_weekly_aq,
+    precautions_for_tomorrow_aq,
+    summarize_weekly_resp,
+    hospital_advisory_for_tomorrow,
+    compose_llm_prompt,
+    generate_llm_advisory,
+)
 
 # Load environment variables
 load_dotenv()
@@ -656,6 +664,37 @@ def main_new():
         c5.metric("NO2 (µg/m³)", f"{metrics['no2']:.1f}", deltas["no2"], delta_color="inverse")
         c6.metric("SO2 (µg/m³)", f"{metrics['so2']:.1f}", deltas["so2"], delta_color="inverse")
 
+        with st.expander("Advisory"):
+            aq_summary = summarize_weekly_aq(df_preds_aq, "date", POLLUTANT_COLS)
+            tomorrow_precautions = precautions_for_tomorrow_aq(metrics, df_preds_aq, POLLUTANT_COLS)
+
+            st.markdown("**Weekly Trend**")
+            if aq_summary.get("top_concerns"):
+                for t in aq_summary["top_concerns"]:
+                    st.write(f"- {t}")
+            else:
+                st.write("- Insufficient data for a weekly summary.")
+
+            st.markdown("**Tomorrow Precautions**")
+            if tomorrow_precautions:
+                for p in tomorrow_precautions:
+                    st.write(f"- {p}")
+            else:
+                st.write("- No specific precautions triggered.")
+
+            use_llm = st.toggle("Use LLM to refine advisory", value=False, key="aq_llm_toggle")
+            if use_llm:
+                prompt = compose_llm_prompt(aq_summary, None)
+                llm_text = generate_llm_advisory(prompt)
+                if llm_text:
+                    st.markdown("**AI-Refined Advisory**")
+                    st.write(llm_text)
+                else:
+                    st.info("LLM not configured; showing rule-based advisory only.")
+
+            txt = "Weekly Trend\n" + "\n".join(aq_summary.get("top_concerns", [])) + "\n\nTomorrow Precautions\n" + "\n".join(tomorrow_precautions)
+            st.download_button("Download advisory (txt)", data=txt.encode("utf-8"), file_name="aq_advisory.txt")
+
         # Trend chart (filtered by selected date range)
         _, _, df_aq_filtered = date_range_filter(df_preds_aq, "date", key_prefix="aq")
         plot_time_series(df_aq_filtered, "date", POLLUTANT_COLS, "Air Quality Trend")
@@ -722,6 +761,59 @@ def main_new():
                 resp_deltas["Upper Respiratory Tract Infection (J00-J06)"],
                 delta_color="inverse",
             )
+
+            with st.expander("Hospital Advisory"):
+                hosp = hospital_advisory_for_tomorrow(
+                    df_preds_resp, "date", RESP_DISEASE_COLS, tomorrow_ts
+                )
+
+                st.markdown("**Tomorrow Summary**")
+                if hosp.get("summary"):
+                    for s in hosp["summary"]:
+                        st.write(f"- {s}")
+                else:
+                    st.write("- No notable surges expected based on current forecast.")
+
+                st.markdown("**Inventory & Ops Checklist**")
+                for dis, vals in hosp.get("by_disease", {}).items():
+                    st.write(f"- {dis}: expected {vals['expected']} (tier {vals['load_tier']})")
+                    if vals.get("inventory"):
+                        st.write("  - Inventory: " + ", ".join(vals["inventory"]))
+                    if vals.get("ops"):
+                        st.write("  - Ops: " + ", ".join(vals["ops"]))
+
+                use_llm = st.toggle("Use LLM to refine advisory", value=False, key="resp_llm_toggle")
+                if use_llm:
+                    prompt = compose_llm_prompt(None, hosp)
+                    llm_text = generate_llm_advisory(prompt)
+                    if llm_text:
+                        st.markdown("**AI-Refined Advisory**")
+                        st.write(llm_text)
+                    else:
+                        st.info("LLM not configured; showing rule-based advisory only.")
+
+                parts = []
+                parts.append("Tomorrow Summary")
+                parts.extend(hosp.get("summary", []))
+                parts.append("")
+                parts.append("By Disease")
+                for dis, vals in hosp.get("by_disease", {}).items():
+                    delta_txt = (
+                        f"{('+' if (vals.get('delta_pct') or 0)>=0 else '')}{vals.get('delta_pct'):.1f}%"
+                        if vals.get("delta_pct") is not None else "N/A"
+                    )
+                    parts.append(
+                        f"- {dis}: expected {vals['expected']} (baseline~{vals['baseline7']:.0f}, {delta_txt}, tier {vals['load_tier']})"
+                    )
+                    if vals.get("inventory"):
+                        parts.append("  Inventory: " + ", ".join(vals["inventory"]))
+                    if vals.get("ops"):
+                        parts.append("  Ops: " + ", ".join(vals["ops"]))
+                st.download_button(
+                    "Download hospital advisory (txt)",
+                    data=("\n".join(parts)).encode("utf-8"),
+                    file_name="hospital_advisory.txt",
+                )
 
             # Trend chart (filtered by selected date range)
             _, _, df_resp_filtered = date_range_filter(df_preds_resp, "date", key_prefix="resp")
