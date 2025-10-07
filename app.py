@@ -611,21 +611,25 @@ def main_new():
                 "Acute Bronchitis (J20)",
                 int(resp_metrics["Acute Bronchitis (J20)"]),
                 resp_deltas["Acute Bronchitis (J20)"],
+                delta_color="inverse",
             )
             r1c2.metric(
                 "Asthma (J45)",
                 int(resp_metrics["Asthma (J45)"]),
                 resp_deltas["Asthma (J45)"],
+                delta_color="inverse",
             )
             r1c3.metric(
                 "Bronchiolitis (J21)",
                 int(resp_metrics["Bronchiolitis (J21)"]),
                 resp_deltas["Bronchiolitis (J21)"],
+                delta_color="inverse",
             )
             r1c4.metric(
                 "COPD (J44)",
                 int(resp_metrics["Chronic Obstructive Pulmonary Disease (J44)"]),
                 resp_deltas["Chronic Obstructive Pulmonary Disease (J44)"],
+                delta_color="inverse",
             )
 
             # Second row (3 metrics)
@@ -634,16 +638,19 @@ def main_new():
                 "Influenza (J09-J11)",
                 int(resp_metrics["Influenza (J09-J11)"]),
                 resp_deltas["Influenza (J09-J11)"],
+                delta_color="inverse",
             )
             r2c2.metric(
                 "Pneumonia (J12-J18)",
                 int(resp_metrics["Pneumonia (J12-J18)"]),
                 resp_deltas["Pneumonia (J12-J18)"],
+                delta_color="inverse",
             )
             r2c3.metric(
                 "URTI (J00-J06)",
                 int(resp_metrics["Upper Respiratory Tract Infection (J00-J06)"]),
                 resp_deltas["Upper Respiratory Tract Infection (J00-J06)"],
+                delta_color="inverse",
             )
 
             plot_time_series(
