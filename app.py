@@ -16,7 +16,11 @@ from feature_engineering import climate_clean_transform
 # Load environment variables
 load_dotenv()
 
-st.set_page_config(page_title="PulmoPulse", page_icon="pulmo_icon.png")
+st.set_page_config(
+    page_title="PulmoPulse Dashboard",
+    page_icon="pulmo_icon.png",
+    layout="wide",
+)
 
 # Constants
 POLLUTANT_COLS = ["co", "no", "no2", "o3", "so2", "pm2_5", "pm10", "nh3"]
@@ -81,7 +85,8 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
         min_value=5,
         max_value=50,
         value=10,
-        key=rows_key
+        key=rows_key,
+        help="Number of rows visible in the table.",
     )
     total = (len(df) + rows - 1) // rows
     page = st.number_input(
@@ -89,7 +94,8 @@ def paginate_df(df: pd.DataFrame, rows_key: str, page_key: str) -> pd.DataFrame 
         min_value=1,
         max_value=total,
         value=1,
-        key=page_key
+        key=page_key,
+        help="Navigate between pages of results.",
     )
     start = (page - 1) * rows
     end = start + rows
@@ -293,7 +299,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
     )
     filtered = df_melt[df_melt["Category"].isin(selected)]
     scale = st.radio(
-        "Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
+        "Y-axis scale", ["linear", "log"], index=0, key=f"{title}_scale")
     legend = alt.selection_point(fields=["Category"], bind="legend")
     chart = (
         alt.Chart(filtered)
@@ -307,9 +313,17 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
             tooltip=[f"{id_var}:T", "date:T", "Category:N", "Value:Q"],
         )
         .add_params(legend)
-        .properties(width=900, height=400)
+        .properties(width=1100, height=420)
     )
     st.altair_chart(chart, use_container_width=True)
+
+    st.download_button(
+        label="Download data (CSV)",
+        data=df.to_csv(index=False).encode("utf-8"),
+        file_name=f"{title.lower().replace(' ', '_')}.csv",
+        mime="text/csv",
+        key=f"{title}_download",
+    )
 
 
 # Main functions
@@ -464,4 +478,104 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_new()
+
+def main_new():
+    # Header
+    left, right = st.columns([0.8, 0.2])
+    with left:
+        st.title("PulmoPulse: Accra Air & Respiratory Forecasts")
+        st.caption(
+            "Forecast air quality pollutants and respiratory disease burden using climate inputs."
+        )
+    with right:
+        st.image("pulmo_icon.png", width=96)
+
+    # Sidebar
+    st.sidebar.image("pulmo_icon.png", width=96)
+    st.sidebar.markdown("### PulmoPulse Dashboard")
+    with st.sidebar.expander("About this app", expanded=False):
+        st.markdown(f"""
+            **PulmoPulse** uses climate inputs to predict air-quality pollutants  
+            and respiratory disease burden.
+            - **Data sources:** OpenWeather API, Ghana Health Service, Visualcrossing API  
+            - **Models:** {AQ_MODEL_NAME} v{AQ_MODEL_VERSION}, {RESP_MODEL_NAME} v{RESP_MODEL_VERSION}
+            - **Contact:** dan.gyinaye@gmail.com
+            """)
+
+    tabs = st.tabs(["Climate Data", "Air Quality Forecast", "Respiratory Forecast"])
+    climate_tab, aq_tab, resp_tab = tabs
+
+    # Climate tab
+    with climate_tab:
+        df_raw = get_climate_data()
+        if df_raw is None:
+            st.info("Please upload or fetch climate data to begin.")
+            return
+        raw_page, df_full = show_climate_section(df_raw)
+        st.dataframe(
+            raw_page,
+            use_container_width=True,
+            column_config={
+                "date": st.column_config.DatetimeColumn("Date", format="MMM DD, YYYY"),
+            },
+        )
+
+    # Clean & load models once
+    climate_df = climate_clean_transform(df_full.copy())
+    aq_model = load_model("runs:/e81a7b1389ab485d8b4de63607008f3d/model_artifact")
+    resp_model = load_model("runs:/99d4133effd74085a5c676a225c308bf/model_artifact")
+
+    # AQ tab
+    with aq_tab:
+        df_preds_aq = show_aq_section(climate_df, aq_model)
+        if df_preds_aq is None or df_preds_aq.empty:
+            st.info("No air quality predictions to display.")
+            st.stop()
+        deltas = compute_deltas_next_day(df_preds_aq)
+
+        # Scorecard metrics (tomorrow)
+        metrics = (
+            df_preds_aq.assign(date=pd.to_datetime(df_preds_aq["date"]).dt.normalize())
+            .set_index("date")
+            .reindex([pd.Timestamp(date.today() + timedelta(days=1))], method="ffill")
+            .iloc[0]
+        )
+
+        tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
+        st.subheader(f"Forecast for {tomorrow_ts.strftime('%B %d, %Y')}")
+
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("PM2.5 (µg/m³)", f"{metrics['pm2_5']:.1f}", deltas["pm2_5"], delta_color="inverse")
+        c2.metric("PM10 (µg/m³)", f"{metrics['pm10']:.1f}", deltas["pm10"], delta_color="inverse")
+        c3.metric("O3 (µg/m³)", f"{metrics['o3']:.1f}", deltas["o3"], delta_color="inverse")
+        c4.metric("CO (µg/m³)", f"{metrics['co']:.1f}", deltas["co"], delta_color="inverse")
+        c5.metric("NO2 (µg/m³)", f"{metrics['no2']:.1f}", deltas["no2"], delta_color="inverse")
+        c6.metric("SO2 (µg/m³)", f"{metrics['so2']:.1f}", deltas["so2"], delta_color="inverse")
+
+        plot_time_series(df_preds_aq, "date", POLLUTANT_COLS, "Air Quality Trend")
+
+    # Respiratory tab
+    with resp_tab:
+        df_preds_resp = show_resp_section(climate_df, df_preds_aq, resp_model)
+        if df_preds_resp is not None and not df_preds_resp.empty:
+            tomorrow_ts = pd.Timestamp(date.today()) + pd.Timedelta(days=1)
+            resp_metrics = (
+                df_preds_resp.assign(date=pd.to_datetime(df_preds_resp["date"]).dt.normalize())
+                .set_index("date")
+                .reindex([tomorrow_ts], method="ffill")
+                .iloc[0]
+            )
+            k1, k2, k3 = st.columns(3)
+            k1.metric("Asthma (J45)", int(resp_metrics["Asthma (J45)"]))
+            k2.metric("Pneumonia (J12-J18)", int(resp_metrics["Pneumonia (J12-J18)"]))
+            k3.metric(
+                "URTI (J00-J06)", int(resp_metrics["Upper Respiratory Tract Infection (J00-J06)"])
+            )
+
+            plot_time_series(
+                df_preds_resp,
+                "date",
+                RESP_DISEASE_COLS,
+                "Respiratory Disease Forecast",
+            )
