@@ -389,6 +389,44 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     return pd.Series(deltas)
 
 
+def compute_deltas_next_day_for(df: pd.DataFrame, cols: List[str]) -> pd.Series:
+    """Generic next-day percent deltas for selected columns.
+    Returns a Series mapping each column to a +/-X.X% string or "N/A".
+    """
+    df2 = df.copy()
+    df2["date"] = pd.to_datetime(df2["date"]).dt.normalize()
+    df2 = df2.sort_values("date").reset_index(drop=True)
+
+    today_ts = pd.Timestamp(date.today())
+    next_ts = today_ts + pd.Timedelta(days=1)
+
+    if next_ts not in set(df2["date"]):
+        return pd.Series({col: "N/A" for col in cols})
+
+    tomorrow_idx = df2.index[df2["date"] == next_ts][0]
+    prev_idx = tomorrow_idx - 1
+    if prev_idx < 0:
+        return pd.Series({col: "N/A" for col in cols})
+
+    deltas = {}
+    for col in cols:
+        prev = df2.at[prev_idx, col]
+        curr = df2.at[tomorrow_idx, col]
+        if pd.notna(prev) and prev != 0:
+            pct = (curr - prev) / prev * 100
+            sign = "+" if pct >= 0 else ""
+            deltas[col] = f"{sign}{pct:.1f}%"
+        else:
+            deltas[col] = "N/A"
+
+    return pd.Series(deltas)
+
+
+def compute_resp_deltas_next_day(df: pd.DataFrame) -> pd.Series:
+    """Convenience wrapper for respiratory disease deltas."""
+    return compute_deltas_next_day_for(df, RESP_DISEASE_COLS)
+
+
 def main():
     """Main function to run the Streamlit app.
     This function sets up the Streamlit app, handles user input, and displays the results."""
@@ -563,11 +601,49 @@ def main_new():
                 .reindex([tomorrow_ts], method="ffill")
                 .iloc[0]
             )
-            k1, k2, k3 = st.columns(3)
-            k1.metric("Asthma (J45)", int(resp_metrics["Asthma (J45)"]))
-            k2.metric("Pneumonia (J12-J18)", int(resp_metrics["Pneumonia (J12-J18)"]))
-            k3.metric(
-                "URTI (J00-J06)", int(resp_metrics["Upper Respiratory Tract Infection (J00-J06)"])
+
+            # Compute deltas for respiratory diseases
+            resp_deltas = compute_resp_deltas_next_day(df_preds_resp)
+
+            # First row (4 metrics)
+            r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+            r1c1.metric(
+                "Acute Bronchitis (J20)",
+                int(resp_metrics["Acute Bronchitis (J20)"]),
+                resp_deltas["Acute Bronchitis (J20)"],
+            )
+            r1c2.metric(
+                "Asthma (J45)",
+                int(resp_metrics["Asthma (J45)"]),
+                resp_deltas["Asthma (J45)"],
+            )
+            r1c3.metric(
+                "Bronchiolitis (J21)",
+                int(resp_metrics["Bronchiolitis (J21)"]),
+                resp_deltas["Bronchiolitis (J21)"],
+            )
+            r1c4.metric(
+                "COPD (J44)",
+                int(resp_metrics["Chronic Obstructive Pulmonary Disease (J44)"]),
+                resp_deltas["Chronic Obstructive Pulmonary Disease (J44)"],
+            )
+
+            # Second row (3 metrics)
+            r2c1, r2c2, r2c3 = st.columns(3)
+            r2c1.metric(
+                "Influenza (J09-J11)",
+                int(resp_metrics["Influenza (J09-J11)"]),
+                resp_deltas["Influenza (J09-J11)"],
+            )
+            r2c2.metric(
+                "Pneumonia (J12-J18)",
+                int(resp_metrics["Pneumonia (J12-J18)"]),
+                resp_deltas["Pneumonia (J12-J18)"],
+            )
+            r2c3.metric(
+                "URTI (J00-J06)",
+                int(resp_metrics["Upper Respiratory Tract Infection (J00-J06)"]),
+                resp_deltas["Upper Respiratory Tract Infection (J00-J06)"],
             )
 
             plot_time_series(
