@@ -326,6 +326,33 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
     )
 
 
+def date_range_filter(df: pd.DataFrame, date_col: str, key_prefix: str) -> tuple[pd.Timestamp, pd.Timestamp, pd.DataFrame]:
+    """Render a date range slider and return (start, end, filtered_df).
+    Intended to filter trend charts only; KPIs remain unfiltered unless desired.
+    """
+    if df.empty or date_col not in df.columns:
+        return None, None, df
+
+    d = df.copy()
+    d[date_col] = pd.to_datetime(d[date_col]).dt.normalize()
+    d = d.sort_values(date_col)
+    min_dt = d[date_col].min()
+    max_dt = d[date_col].max()
+    start_dt, end_dt = st.slider(
+        "Date range",
+        min_value=min_dt.to_pydatetime(),
+        max_value=max_dt.to_pydatetime(),
+        value=(min_dt.to_pydatetime(), max_dt.to_pydatetime()),
+        format="MMM DD, YYYY",
+        key=f"{key_prefix}_date_range",
+    )
+
+    start_ts = pd.Timestamp(start_dt).normalize()
+    end_ts = pd.Timestamp(end_dt).normalize()
+    mask = (d[date_col] >= start_ts) & (d[date_col] <= end_ts)
+    return start_ts, end_ts, d.loc[mask].reset_index(drop=True)
+
+
 # Main functions
 def get_today_metrics(df: pd.DataFrame) -> pd.Series | None:
     """Get today's metrics from the dataframe.
@@ -629,7 +656,9 @@ def main_new():
         c5.metric("NO2 (µg/m³)", f"{metrics['no2']:.1f}", deltas["no2"], delta_color="inverse")
         c6.metric("SO2 (µg/m³)", f"{metrics['so2']:.1f}", deltas["so2"], delta_color="inverse")
 
-        plot_time_series(df_preds_aq, "date", POLLUTANT_COLS, "Air Quality Trend")
+        # Trend chart (filtered by selected date range)
+        _, _, df_aq_filtered = date_range_filter(df_preds_aq, "date", key_prefix="aq")
+        plot_time_series(df_aq_filtered, "date", POLLUTANT_COLS, "Air Quality Trend")
 
     # Respiratory tab
     with resp_tab:
@@ -694,8 +723,10 @@ def main_new():
                 delta_color="inverse",
             )
 
+            # Trend chart (filtered by selected date range)
+            _, _, df_resp_filtered = date_range_filter(df_preds_resp, "date", key_prefix="resp")
             plot_time_series(
-                df_preds_resp,
+                df_resp_filtered,
                 "date",
                 RESP_DISEASE_COLS,
                 "Respiratory Disease Forecast",
