@@ -389,6 +389,44 @@ def compute_deltas_next_day(df: pd.DataFrame) -> pd.Series:
     return pd.Series(deltas)
 
 
+def inject_kpi_css():
+    """Inject light CSS to make st.metric look like cards."""
+    st.markdown(
+        """
+        <style>
+        :root {
+          --card-border: rgba(0,0,0,0.06);
+          --card-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        /* Card container for metrics */
+        div[data-testid="stMetric"] {
+          padding: 12px 16px;
+          border: 1px solid var(--card-border);
+          border-left: 4px solid var(--primary-color);
+          border-radius: 10px;
+          background: var(--secondary-background-color);
+          box-shadow: var(--card-shadow);
+          margin-top: 4px;
+          margin-bottom: 8px;
+        }
+        /* Reduce extra padding wrappers */
+        div[data-testid="stMetric"] > div {
+          padding: 0 !important;
+        }
+        /* Emphasize value slightly */
+        div[data-testid="stMetricValue"] {
+          font-weight: 700;
+        }
+        /* Tidy delta icon spacing */
+        div[data-testid="stMetricDelta"] svg {
+          margin-right: 4px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def compute_deltas_next_day_for(df: pd.DataFrame, cols: List[str]) -> pd.Series:
     """Generic next-day percent deltas for selected columns.
     Returns a Series mapping each column to a +/-X.X% string or "N/A".
@@ -525,6 +563,9 @@ def main_new():
         )
     with right:
         st.image("pulmo_icon.png", width=96)
+
+    # Global KPI card styling
+    inject_kpi_css()
 
     # Sidebar
     st.sidebar.image("pulmo_icon.png", width=96)
