@@ -764,6 +764,16 @@ def main_new():
                 delta_color="inverse",
             )
 
+            # Trend chart (filtered by selected date range)
+            _, _, df_resp_filtered = date_range_filter(df_preds_resp, "date", key_prefix="resp")
+            plot_time_series(
+                df_resp_filtered,
+                "date",
+                RESP_DISEASE_COLS,
+                "Respiratory Disease Forecast",
+            )
+
+            # Hospital Advisory (moved after chart and CSV download)
             with st.expander("Hospital Advisory"):
                 hosp = hospital_advisory_for_tomorrow(
                     df_preds_resp, "date", RESP_DISEASE_COLS, tomorrow_ts
@@ -776,29 +786,35 @@ def main_new():
                 else:
                     st.write("- No notable surges expected based on current forecast.")
 
-                st.markdown("**Inventory & Ops Checklist**")
+                st.markdown("**By Disease**")
                 for dis, vals in hosp.get("by_disease", {}).items():
-                    st.write(f"- {dis}: expected {vals['expected']} (tier {vals['load_tier']})")
+                    delta_txt = (
+                        f"{('+' if (vals.get('delta_pct') or 0)>=0 else '')}{vals.get('delta_pct'):.1f}%"
+                        if vals.get("delta_pct") is not None else "N/A"
+                    )
+                    st.markdown(f"**{dis}**")
+                    st.caption(
+                        f"Expected {vals['expected']} (baseline ~{vals['baseline7']:.0f}, {delta_txt}, tier {vals['load_tier']})"
+                    )
                     if vals.get("inventory"):
-                        st.write("  - Inventory: " + ", ".join(vals["inventory"]))
+                        st.markdown("- Inventory: " + ", ".join(vals["inventory"]))
                     if vals.get("ops"):
-                        st.write("  - Ops: " + ", ".join(vals["ops"]))
+                        st.markdown("- Ops: " + ", ".join(vals["ops"]))
+                    st.divider()
 
-                use_llm = st.toggle("Use LLM to refine advisory", value=False, key="resp_llm_toggle")
-                if use_llm:
-                    prompt = compose_llm_prompt(None, hosp)
-                    llm_text = generate_llm_advisory(prompt)
-                    if llm_text:
-                        st.markdown("**AI-Refined Advisory**")
-                        st.write(llm_text)
-                    else:
-                        st.info("LLM not configured; showing rule-based advisory only.")
+                # Optional LLM toggle (disabled for now)
+                # use_llm = st.toggle("Use LLM to refine advisory", value=False, key="resp_llm_toggle")
+                # if use_llm:
+                #     prompt = compose_llm_prompt(None, hosp)
+                #     llm_text = generate_llm_advisory(prompt)
+                #     if llm_text:
+                #         st.markdown("**AI-Refined Advisory**")
+                #         st.write(llm_text)
+                #     else:
+                #         st.info("LLM not configured; showing rule-based advisory only.")
 
-                parts = []
-                parts.append("Tomorrow Summary")
-                parts.extend(hosp.get("summary", []))
-                parts.append("")
-                parts.append("By Disease")
+                # Download structured text
+                parts = ["Tomorrow Summary", *hosp.get("summary", []), "", "By Disease"]
                 for dis, vals in hosp.get("by_disease", {}).items():
                     delta_txt = (
                         f"{('+' if (vals.get('delta_pct') or 0)>=0 else '')}{vals.get('delta_pct'):.1f}%"
@@ -816,15 +832,6 @@ def main_new():
                     data=("\n".join(parts)).encode("utf-8"),
                     file_name="hospital_advisory.txt",
                 )
-
-            # Trend chart (filtered by selected date range)
-            _, _, df_resp_filtered = date_range_filter(df_preds_resp, "date", key_prefix="resp")
-            plot_time_series(
-                df_resp_filtered,
-                "date",
-                RESP_DISEASE_COLS,
-                "Respiratory Disease Forecast",
-            )
 
 if __name__ == "__main__":
     main_new()
