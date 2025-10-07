@@ -664,11 +664,17 @@ def main_new():
         c5.metric("NO2 (µg/m³)", f"{metrics['no2']:.1f}", deltas["no2"], delta_color="inverse")
         c6.metric("SO2 (µg/m³)", f"{metrics['so2']:.1f}", deltas["so2"], delta_color="inverse")
 
-        with st.expander("Advisory"):
-            aq_summary = summarize_weekly_aq(df_preds_aq, "date", POLLUTANT_COLS)
-            tomorrow_precautions = precautions_for_tomorrow_aq(metrics, df_preds_aq, POLLUTANT_COLS)
+        # Trend chart (filtered by selected date range)
+        _, _, df_aq_filtered = date_range_filter(df_preds_aq, "date", key_prefix="aq")
+        plot_time_series(df_aq_filtered, "date", POLLUTANT_COLS, "Air Quality Trend")
 
-            st.markdown("**Weekly Trend**")
+        # Advisory (after chart and CSV download)
+        with st.expander("Advisory"):
+            focus_cols = ["pm2_5", "pm10", "o3"]
+            aq_summary = summarize_weekly_aq(df_preds_aq, "date", focus_cols)
+            tomorrow_precautions = precautions_for_tomorrow_aq(metrics, df_preds_aq, focus_cols)
+
+            st.markdown("**Weekly Trend (PM2.5, PM10, O3)**")
             if aq_summary.get("top_concerns"):
                 for t in aq_summary["top_concerns"]:
                     st.write(f"- {t}")
@@ -682,22 +688,18 @@ def main_new():
             else:
                 st.write("- No specific precautions triggered.")
 
-            use_llm = st.toggle("Use LLM to refine advisory", value=False, key="aq_llm_toggle")
-            if use_llm:
-                prompt = compose_llm_prompt(aq_summary, None)
-                llm_text = generate_llm_advisory(prompt)
-                if llm_text:
-                    st.markdown("**AI-Refined Advisory**")
-                    st.write(llm_text)
-                else:
-                    st.info("LLM not configured; showing rule-based advisory only.")
+            # use_llm = st.toggle("Use LLM to refine advisory", value=False, key="aq_llm_toggle")
+            # if use_llm:
+            #     prompt = compose_llm_prompt(aq_summary, None)
+            #     llm_text = generate_llm_advisory(prompt)
+            #     if llm_text:
+            #         st.markdown("**AI-Refined Advisory**")
+            #         st.write(llm_text)
+            #     else:
+            #         st.info("LLM not configured; showing rule-based advisory only.")
 
             txt = "Weekly Trend\n" + "\n".join(aq_summary.get("top_concerns", [])) + "\n\nTomorrow Precautions\n" + "\n".join(tomorrow_precautions)
             st.download_button("Download advisory (txt)", data=txt.encode("utf-8"), file_name="aq_advisory.txt")
-
-        # Trend chart (filtered by selected date range)
-        _, _, df_aq_filtered = date_range_filter(df_preds_aq, "date", key_prefix="aq")
-        plot_time_series(df_aq_filtered, "date", POLLUTANT_COLS, "Air Quality Trend")
 
     # Respiratory tab
     with resp_tab:
