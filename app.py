@@ -299,7 +299,7 @@ def plot_time_series(df: pd.DataFrame, id_var: str, value_vars: list, title: str
     )
     filtered = df_melt[df_melt["Category"].isin(selected)]
     scale = st.radio(
-        "Y-axis scale", ["linear", "log"], index=0, key=f"{title}_scale")
+        "Y-axis scale", ["linear", "log"], index=1, key=f"{title}_scale")
     legend = alt.selection_point(fields=["Category"], bind="legend")
     chart = (
         alt.Chart(filtered)
