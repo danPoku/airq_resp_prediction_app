@@ -477,9 +477,6 @@ def main():
         )
 
 
-if __name__ == "__main__":
-    main_new()
-
 def main_new():
     # Header
     left, right = st.columns([0.8, 0.2])
@@ -579,3 +576,6 @@ def main_new():
                 RESP_DISEASE_COLS,
                 "Respiratory Disease Forecast",
             )
+
+if __name__ == "__main__":
+    main_new()
